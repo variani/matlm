@@ -1,0 +1,24 @@
+Package: matlm
+Type: Package
+Title: Linear models in matrix form
+Version: 0.1.0
+Date: 2016-12-24
+Authors@R: c(person("Andrey", "Ziyatdinov", email = "andrey@example.com", role = c("aut", "cre")))
+Maintainer: Andrey Ziyatdinov <andrey@example.com>
+Description: Linear models (lm) in matrix form for fast testing multiple predictors.
+License: GPL (>= 3)
+URL: https://github.com/variani/matlm
+Imports:
+    Matrix,
+    bigmemory,
+    tibble,
+    magrittr
+Suggests:
+    testthat
+Collate:
+    'package.R'
+    'sim.R'
+    'pred.R'
+    'ids.R'
+    'matlm.R'
+RoxygenNote: 6.0.1
