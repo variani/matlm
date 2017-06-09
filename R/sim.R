@@ -5,7 +5,7 @@ matlm_sim_randpred <- function(seed, N = 100, M = 500)
     set.seed(seed)
   }
   
-  y <- rnorm(N)
+  y <- rnorm(N, mean = 10)
   X <- matrix(rnorm(N * M), nrow = N, ncol = M)
   
   dat <- data_frame(y = y)

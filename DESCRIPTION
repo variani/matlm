@@ -12,12 +12,16 @@ Imports:
     Matrix,
     bigmemory,
     tibble,
+    dplyr,
     magrittr
 Suggests:
     testthat
 Collate:
     'package.R'
+    'zzz.R'
+    'utils.R'
     'sim.R'
+    'orth.R'
     'pred.R'
     'ids.R'
     'matlm.R'

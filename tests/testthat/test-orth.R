@@ -19,4 +19,6 @@ test_that("orth: y", {
     
   # expect
   expect_true(abs(crossprod(y_orth1, c1)) < 1e-10)
+  expect_true(abs(crossprod(y_orth2, c1)) < 1e-10)
+  expect_true(abs(crossprod(y_orth2, c1)) < 1e-10)    
 })

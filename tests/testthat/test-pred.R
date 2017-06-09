@@ -1,4 +1,4 @@
-context("class matlmPred")
+context("pred")
 
 test_that("matlmPredMat: basics", {
   nrow <- 2

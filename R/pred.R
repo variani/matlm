@@ -17,6 +17,7 @@
 #' @export
 matlm_pred <- function(x, ind = NULL, num_batches = 1, ...)
 {
+  ### args
   stopifnot(!any(duplicated(ind)))
   
   out <- list(data = x, ind = ind, num_batches = num_batches)
@@ -29,6 +30,11 @@ matlm_pred <- function(x, ind = NULL, num_batches = 1, ...)
     stop("not supported class")
   }
   
+  # colnames
+  if(is.null(colnames(out$data))) {
+    colnames(out$data) <- as.character(seq(1, pred_ncol(out)))
+  } 
+  
   # process batches
   beg <- seq(1, pred_ncol(out), length = out$num_batches)
   end <- c(beg[-1], pred_ncol(out))
@@ -36,7 +42,7 @@ matlm_pred <- function(x, ind = NULL, num_batches = 1, ...)
   ### return
   out$beg <- beg
   out$end <- end
-  out$complete <- (length(ind) == pred_nrow(out))
+  out$complete <- is.null(out$ind) | (length(out$ind) == pred_nrow(out))
   
   return(out)
 }
@@ -104,10 +110,8 @@ pred_data.matlmPred <- function(x, ind_row, ind_col, ...)
 }
 
 #' @export 
-pred_batch.matlmPred <- function(x, batch, ...)
+pred_batch.matlmPred <- function(x, batch = 1, ...)
 {
-  stopifnot(!missing(batch))
-  
   if(x$num_batches == 1) {
     stopifnot(batch == 1)
     return(pred_data(x))
