@@ -18,4 +18,4 @@ Features (to be implemented):
     - Parallel computation
 - Support different formats to store predictors: `matrix`, `big.matrix`, etc
     - Use S3 classes for the interface
-- Allow for GLS models (not only OLS)
+- Run GLS models (not only OLS)
