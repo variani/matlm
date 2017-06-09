@@ -18,7 +18,7 @@ out <- microbenchmark(
   
 ### plot
 title <- paste(N, "individuals,", M, "null predictors")
-subtitle <- "Timing: 1s matlm vs. 10s lm" 
+subtitle <- "Timing: 1s by matlm vs. 10s by lm" 
 
 p <- autoplot(out) + labs(title = title, subtitle = subtitle) +
   theme(text = element_text(size = 20))
