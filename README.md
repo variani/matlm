@@ -4,6 +4,8 @@
 
 ![](docs/figures/timing-matlm-vs-lm.png)
 
+Source: [docs/R/01-figure-timing-assoc.R](docs/R/01-figure-timing-assoc.R)
+
 ## About
 
 The `matlm` R package fits linear models in matrix form and avoids calling `lm`.
