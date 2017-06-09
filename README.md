@@ -13,6 +13,7 @@ and calling `lm` for every marker creates considerable overhead in computation t
 Features (to be implemented):
 
 - Split a set of predictors into batches
+    - Parallel computation
 - Support different formats to store predictors: `matrix`, `big.matrix`, etc
     - Use S3 classes for the interface
 - Allow for GLS models (not only OLS)
