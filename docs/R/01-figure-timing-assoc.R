@@ -17,9 +17,10 @@ out <- microbenchmark(
   times = 5)
   
 ### plot
-title <- paste("Timing on", N, "individuals,", M, "(null) predictors")
+title <- paste(N, "individuals,", M, "(null) predictors")
+subtitle <- "Timing: a second by matlm vs. one order of magnitude more by lm" 
 
-p <- autoplot(out) + labs(title = title) +
+p <- autoplot(out) + labs(title = title, subtitle = subtitle) +
   theme(text = element_text(size = 20))
 
 png("timing-matlm-vs-lm.png", width = 2*480, height = 480)
