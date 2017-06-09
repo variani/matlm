@@ -40,17 +40,18 @@ matlm <- function(formula, data, ...,
   
   
   ### extract model/response matrices
-  C <- model.matrix(formula, data)
   y <- model.extract(model.frame(formula, data), "response")
+  C <- model.matrix(formula, data)
 
   stopifnot(nrow(C) == nobs_model)
   stopifnot(length(y) == nobs_model)
     
-  ### loop
+  ### test multiple predictors one by one
+  y_orth <- matlm_orth(C, y)
+  
   for(batch in seq(1, num_batches)) {
     X <- pred_batch(pred, batch)
-    
-    X_orth <- matlm_orth(X, C)
+    X_orth <- matlm_orth(C, X)
   }
   
   return(invisible())
