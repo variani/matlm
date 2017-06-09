@@ -17,7 +17,7 @@ out <- microbenchmark(
   times = 5)
   
 ### plot
-title <- paste("Timings on", N, "individuals,", M, "(null) predictors")
+title <- paste("Timing on", N, "individuals,", M, "(null) predictors")
 
 p <- autoplot(out) + labs(title = title) +
   theme(text = element_text(size = 20))
