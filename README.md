@@ -6,4 +6,6 @@
 
 ## About
 
-linear models (lm) in matrix for testing multiple predictors 
+The `matlm` R package fits linear models in matrix form and avoids calling `lm`.
+That makes computation efficient if many predictors need to be tested 
+and calling `lm` for every marker.
