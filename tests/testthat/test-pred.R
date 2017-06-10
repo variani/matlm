@@ -38,7 +38,7 @@ test_that("matlmPredMat: big.matrix.descriptor", {
   
   pred <- matlm_pred(bdesc)
   
-  expect_true(all(c("matlmPredBigMatDesc", "matlmPred") %in% class(pred)))
+  expect_true(all(c("matlmPredBigMat", "matlmPred") %in% class(pred)))
   
   expect_true(pred_nrow(pred) == nrow)
   expect_true(pred_ncol(pred) == ncol)

@@ -1,6 +1,10 @@
 # Custom
 .DS_Store
 
+# big.matrix storage files
+*.bin
+*.desc
+
 # History files
 .Rhistory
 .Rapp.history

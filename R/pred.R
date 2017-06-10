@@ -20,19 +20,24 @@ matlm_pred <- function(x, ind = NULL, num_batches = 1, ...)
   ### args
   stopifnot(!any(duplicated(ind)))
   
-  out <- list(data = x, num_batches = num_batches)
+  out <- list(num_batches = num_batches)
   
   if(class(x) == "matrix") {
+    out$data <- x
+
     oldClass(out) <- c("matlmPredMat", "matlmPred")
   } else if(class(x) == "big.matrix") {
-     oldClass(out) <- c("matlmPredBigMat", "matlmPred")
+    out$data <- describe(x)
+
+    oldClass(out) <- c("matlmPredBigMat", "matlmPred")
   } else if(class(x) == "big.matrix.descriptor") {
-    oldClass(out) <- c("matlmPredBigMatDesc", "matlmPred")
+    out$data <- x
+    
+    oldClass(out) <- c("matlmPredBigMat", "matlmPred")
   } else {
     stop("not supported class")
   }
-
-  stopifnot(num_batches <= pred_ncol(out))
+  stopifnot(out$num_batches <= pred_ncol(out))
 
   ### ind
   if(is.null(ind)) {
@@ -57,11 +62,11 @@ matlm_pred <- function(x, ind = NULL, num_batches = 1, ...)
   end <- c(beg[-1] - 1, pred_ncol(out))
   stopifnot(all(beg <= pred_ncol(out)))
   stopifnot(all(end <= pred_ncol(out)))
-  
-  ### return
+
   out$beg <- beg
   out$end <- end
   
+  ### return
   return(out)
 }
 
@@ -78,11 +83,16 @@ pred_ncol <- function(x, ...) UseMethod("pred_ncol")
 #' @export pred_colnames
 pred_colnames <- function(x, ...) UseMethod("pred_colnames")
 
+#' @export pred_slice
+pred_slice <- function(x, ind_row, ind_col, ...) UseMethod("pred_slice")
+
 #' @export pred_data
-pred_data <- function(x, ...) UseMethod("pred_data")
+pred_data <- function(x, ind_row, ind_col, ...) UseMethod("pred_data")
 
 #' @export pred_batch
 pred_batch <- function(x, ...) UseMethod("pred_batch")
+
+
 
 #--------------
 # print, show
@@ -101,49 +111,40 @@ print.matlmPred <- function(x, ...)
 #--------------
 
 #' @export 
-pred_nrow.matlmPred <- function(x, ...)
-{
-  if("matlmPredBigMatDesc" %in% class(x)) {
-    bmat <- attach.big.matrix(x$data)
-    nrow(bmat)
-  } else {  
-    nrow(x$data)
-  }
-}
+pred_nrow.matlmPred <- function(x, ...) nrow(x$data)
+
+pred_nrow.matlmPredBigMat <- function(x, ...) attach.big.matrix(x$data) %>% nrow
 
 #--------------
 # pred_ncol
 #--------------
 
 #' @export 
-pred_ncol.matlmPred <- function(x, ...)
-{
-  if("matlmPredBigMatDesc" %in% class(x)) {
-    bmat <- attach.big.matrix(x$data)
-    ncol(bmat)
-  } else {
-    ncol(x$data)
-  }
-}
+pred_ncol.matlmPred <- function(x, ...) ncol(x$data)
+
+pred_ncol.matlmPredBigMat <- function(x, ...) attach.big.matrix(x$data) %>% ncol
 
 #--------------
 # pred_colnames
 #--------------
 
 #' @export 
-pred_colnames.matlmPred <- function(x, ...)
-{
-  if("matlmPredBigMatDesc" %in% class(x)) {
-    bmat <- attach.big.matrix(x$data)
-    colnames(bmat)
-  } else {
-    colnames(x$data)
-  }
-}
+pred_colnames.matlmPred <- function(x, ...) colnames(x$data)
+
+pred_colnames.matlmPredBigMat <- function(x, ...) attach.big.matrix(x$data) %>% colnames
 
 #--------------
-# pred_data, pred_batch
+# pred_slice
 #--------------
+
+#' @export 
+pred_slice.matlmPred <- function(x, ind_row, ind_col, ...) x$data[ind_row, ind_col, drop = FALSE]
+
+pred_slice.matlmPredBigMat <- function(x, ind_row, ind_col, ...) attach.big.matrix(x$data)[ind_row, ind_col, drop = FALSE]
+
+#--------------------------
+# pred_data, pred_batch
+#--------------------------
 
 #' @export 
 pred_data.matlmPred <- function(x, ind_row, ind_col, ...)
@@ -157,12 +158,7 @@ pred_data.matlmPred <- function(x, ind_row, ind_col, ...)
   }
     
   ### get data matrix `mat`
-  if("matlmPredBigMatDesc" %in% class(x)) {
-    bmat <- attach.big.matrix(x$data)
-    mat <- bmat[ind_row, ind_col, drop = FALSE]  
-  } else {
-    mat <- x$data[ind_row, ind_col, drop = FALSE]
-  }
+  mat <- pred_slice(x, ind_row, ind_col)
   
   ### column names
   if(x$null_cnames) {
