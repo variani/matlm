@@ -5,6 +5,7 @@
 Topics
 
 - Variable scopes in [stackoverflow](https://stackoverflow.com/a/15755471)
+    - benchmarks in memory loads [stackoverflow](https://stackoverflow.com/a/31603775)
 
 Memory management in R
 
