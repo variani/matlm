@@ -2,6 +2,10 @@
 
 - Tutorial in [blog post](http://gforge.se/2015/02/how-to-go-parallel-in-r-basics-tips/)
 
+Topics
+
+- Variable scopes in [stackoverflow](https://stackoverflow.com/a/15755471)
+
 Memory management in R
 
 - http://adv-r.had.co.nz/memory.html
