@@ -3,6 +3,7 @@ matlm <- function(formula, data, ...,
   varcov = NULL, transform = NULL,
   pred, int,
   num_batches = 1,
+  cores = 1,
   verbose = 0)
 {
   ### call
@@ -52,7 +53,8 @@ matlm <- function(formula, data, ...,
   y_orth <- matlm_orth(C, y)
   y_sc <- matlm_scale(y_orth)
   
-  out <- sapply(seq(1, num_batches), function(batch) {
+  matlm_batch <- function(batch) 
+  {
     X <- pred_batch(pred, batch)
     
     X_orth <- matlm_orth(C, X)
@@ -65,7 +67,18 @@ matlm <- function(formula, data, ...,
     pvals <- pchisq(s2, df = 1, lower = FALSE)
     
     list(data_frame(predictor = colnames(X), zscore = s, pval = pvals))
-  })
+  }
+  
+  if(cores > 1) {
+    stopifnot(requireNamespace("parallel"))
+
+    cl <- makeCluster(cores, type = "FORK")
+    out <- parSapply(cl, seq(1, num_batches), matlm_batch)
+
+    stopCluster(cl)
+  } else {
+    out <- sapply(seq(1, num_batches), matlm_batch)
+  }
   
   tab <- bind_rows(out)
   

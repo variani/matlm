@@ -9,3 +9,4 @@ matlm_pred(x, ind = NULL, num_batches = 1, ...)
 \description{
 S3 class matlmPred.
 }
+
