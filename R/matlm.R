@@ -70,11 +70,8 @@ matlm <- function(formula, data, ...,
   }
   
   if(cores > 1) {
-    stopifnot(requireNamespace("parallel"))
-
     cl <- makeCluster(cores, type = "FORK")
     out <- parSapply(cl, seq(1, num_batches), matlm_batch)
-
     stopCluster(cl)
   } else {
     out <- sapply(seq(1, num_batches), matlm_batch)

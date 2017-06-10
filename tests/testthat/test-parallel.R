@@ -12,7 +12,7 @@ test_that("2 cores (matrix)", {
   expect_equal(assoc1$tab$pval, assoc2$tab$pval, tol = 1e-10)
 })
 
-test_that("2 cores (bigmemory)", {
+test_that("2 cores (bigmemory/descriptor)", {
   N <- 10
   M <- 5
   
@@ -20,9 +20,10 @@ test_that("2 cores (bigmemory)", {
 
   pred <- simdat$pred
   bpred <- as.big.matrix(pred)
+  bdesc <- describe(bpred)
     
-  assoc1 <- matlm(simdat$form, simdat$dat, pred = bpred, num_batches = 2)
-  #assoc2 <- matlm(simdat$form, simdat$dat, pred = bpred, num_batches = 2, cores = 2)
+  assoc1 <- matlm(simdat$form, simdat$dat, pred = bdesc, num_batches = 2)
+  assoc2 <- matlm(simdat$form, simdat$dat, pred = bdesc, num_batches = 2, cores = 2)
  
-  #expect_equal(assoc1$tab$pval, assoc2$tab$pval, tol = 1e-10)
+  expect_equal(assoc1$tab$pval, assoc2$tab$pval, tol = 1e-10)
 })

@@ -26,6 +26,8 @@ matlm_pred <- function(x, ind = NULL, num_batches = 1, ...)
     oldClass(out) <- c("matlmPredMat", "matlmPred")
   } else if(class(x) == "big.matrix") {
      oldClass(out) <- c("matlmPredBigMat", "matlmPred")
+  } else if(class(x) == "big.matrix.descriptor") {
+    oldClass(out) <- c("matlmPredBigMatDesc", "matlmPred")
   } else {
     stop("not supported class")
   }
@@ -76,7 +78,6 @@ pred_ncol <- function(x, ...) UseMethod("pred_ncol")
 #' @export pred_colnames
 pred_colnames <- function(x, ...) UseMethod("pred_colnames")
 
-
 #' @export pred_data
 pred_data <- function(x, ...) UseMethod("pred_data")
 
@@ -96,25 +97,48 @@ print.matlmPred <- function(x, ...)
 }
 
 #--------------
-# nrow, ncol
+# pred_nrow
 #--------------
 
 #' @export 
 pred_nrow.matlmPred <- function(x, ...)
 {
-  nrow(x$data)
+  if("matlmPredBigMatDesc" %in% class(x)) {
+    bmat <- attach.big.matrix(x$data)
+    nrow(bmat)
+  } else {  
+    nrow(x$data)
+  }
 }
+
+#--------------
+# pred_ncol
+#--------------
 
 #' @export 
 pred_ncol.matlmPred <- function(x, ...)
 {
-  ncol(x$data)
+  if("matlmPredBigMatDesc" %in% class(x)) {
+    bmat <- attach.big.matrix(x$data)
+    ncol(bmat)
+  } else {
+    ncol(x$data)
+  }
 }
+
+#--------------
+# pred_colnames
+#--------------
 
 #' @export 
 pred_colnames.matlmPred <- function(x, ...)
 {
-  colnames(x$data)
+  if("matlmPredBigMatDesc" %in% class(x)) {
+    bmat <- attach.big.matrix(x$data)
+    colnames(bmat)
+  } else {
+    colnames(x$data)
+  }
 }
 
 #--------------
@@ -133,7 +157,12 @@ pred_data.matlmPred <- function(x, ind_row, ind_col, ...)
   }
     
   ### get data matrix `mat`
-  mat <- x$data[ind_row, ind_col, drop = FALSE]
+  if("matlmPredBigMatDesc" %in% class(x)) {
+    bmat <- attach.big.matrix(x$data)
+    mat <- bmat[ind_row, ind_col, drop = FALSE]  
+  } else {
+    mat <- x$data[ind_row, ind_col, drop = FALSE]
+  }
   
   ### column names
   if(x$null_cnames) {
