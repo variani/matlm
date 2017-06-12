@@ -7,7 +7,7 @@ cores <- 2
 
 ### simulate data
 N <- 5e2
-M <- 1e3
+M <- 5e3
 
 simdat <- matlm_sim_randpred(seed = 1, N = N, M = M)
 
