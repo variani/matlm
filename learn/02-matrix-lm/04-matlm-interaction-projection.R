@@ -18,7 +18,7 @@ N <- length(y)
 
 z <- c(rep(0, N/2), rep(1, N/2))
 
-y <- y #+ 2 * z
+y <- y #z+ 2 * z
 
 ### compute via matrix operations
 y_c <- scale(y, scale = FALSE)
