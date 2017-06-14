@@ -1,3 +1,6 @@
+# need only .Rmd there
+vignettes/*
+
 # Custom
 .DS_Store
 
