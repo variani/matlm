@@ -58,40 +58,40 @@ matlm <- function(formula, data, ...,
   y_orth <- matlm_orth(C, y)
   y_sc <- matlm_scale(y_orth)
   
-  matlm_batch <- function(batch) 
+  matlm_batch_marginal <- function(batch)
+  {
+    X <- pred_batch(pred, batch)
+    
+    # compute `X_sc`
+    X_orth <- matlm_orth(C, X)
+    X_sc <- matlm_scale(X_orth)
+    
+    r <- as.numeric(crossprod(X_sc, y_sc) / (N - 1))
+    s <- r * sqrt((N - 2) / (1 - r*r))
+    s2 <- s^2
+    
+    pvals <- pchisq(s2, df = 1, lower = FALSE)
+    
+    list(data_frame(predictor = colnames(X), zscore = s, pval = pvals))  
+  }
+  
+  matlm_batch_interaction <- function(batch) 
   {
     X <- pred_batch(pred, batch)
     M <- ncol(X)
     
     # compute `X_sc`
-    X_orth <- switch(mode,
-      "marginal" = matlm_orth(C, X),
-      "interaction"  = {  
-        Xi <- diag(d) %*% X
-        matlm_orth(C, X, Xi)
-      }, 
-      stop("switch in X_orth"))
-    
+    Xi <- diag(d) %*% X
+    X_orth <- matlm_orth(C, X, Xi)
     X_sc <- matlm_scale(X_orth)
 
     # compute `Y_sc`
-    Y_sc <- switch(mode,
-      "marginal" = y_sc,
-      "interaction"  = {  
-        Y <- tcrossprod(y, rep(1, M))
-        Y_orth <- matlm_orth(C, X, Y)
-        matlm_scale(Y_orth)        
-      }, 
-      stop("switch in Y_sc"))
-    
+    Y <- tcrossprod(y, rep(1, M))
+    Y_orth <- matlm_orth(C, X, Y)
+    Y_sc <- matlm_scale(Y_orth)   
+        
     # compute test statistics via `r` 
-    stopifnot(class(Y_sc) == "matrix")
-    if(ncol(Y_sc) == 1) {
-      r <- as.numeric(crossprod(X_sc, Y_sc) / (N - 1))
-    } else {
-      r <- sapply(seq(1, ncol(Y_sc)), function(i) crossprod(X_sc[, i], Y_sc[, i]) / (N - 1))
-    }   
-    #s <- sqrt(N) * r
+    r <- apply(X_sc * Y_sc, 2, sum) / (N - 1)
     s <- r * sqrt((N - 2) / (1 - r*r))
     s2 <- s^2
 
@@ -102,12 +102,18 @@ matlm <- function(formula, data, ...,
   
   if(cores > 1) {
     cl <- makeCluster(cores, type = "FORK")
-    out <- parSapply(cl, seq(1, num_batches), matlm_batch)
+    out <- switch(mode,
+      "marginal" = parSapply(cl, seq(1, num_batches), matlm_batch_marginal),
+      "interaction" = parSapply(cl, seq(1, num_batches), matlm_batch_interaction),
+      stop("switch"))
+      
     stopCluster(cl)
   } else {
-    out <- sapply(seq(1, num_batches), matlm_batch)
+    out <- switch(mode,
+      "marginal" = sapply(seq(1, num_batches), matlm_batch_marginal),
+      "interaction" = sapply(seq(1, num_batches), matlm_batch_interaction),
+      stop("switch"))
   }
-  
   tab <- bind_rows(out)
   
   ### return

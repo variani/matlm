@@ -32,7 +32,7 @@ subtitle <- "Timing: 1s by matlm vs. 10s by lm"
 
 p <- ggplot(tab, aes(expr, time)) + geom_violin() + 
   facet_wrap(~ analysis, ncol = 1) + coord_flip() +
-  labs(title = title, subtitle = subtitle, x = "time [sec]", y = "") +
+  labs(title = title, subtitle = subtitle, y = "time [sec]", x = "") +
   ylim(c(0, max(tab$time))) + 
   theme(text = element_text(size = 20))
 
