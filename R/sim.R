@@ -11,6 +11,9 @@ matlm_sim_randpred <- function(seed, N = 100, M = 500, rho)
   y <- rnorm(N, mean = 10)
   X <- matrix(rnorm(N * M), nrow = N, ncol = M)
   
+  d <- rbinom(N, 1, 0.5)
+  d <- factor(d)
+
   if(!missing(rho)) {
     C <- matrix(rho, M, M)
     diag(C) <- 1
@@ -20,10 +23,11 @@ matlm_sim_randpred <- function(seed, N = 100, M = 500, rho)
     X <- X %*% ch 
   }
   
-  dat <- data_frame(y = y)
+  dat <- data_frame(y = y, d = d)
   form <- formula(y ~ 1)
+  form_int <- formula(y ~ d)
   
-  out <- list(form = form, dat = dat, pred = X)
+  out <- list(form = form, form_int = form_int, dat = dat, pred = X)
   
   return(out)
 }

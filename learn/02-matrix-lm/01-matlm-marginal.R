@@ -4,7 +4,7 @@ library(dplyr)
 
 ### par
 seed <- 1
-N <- 1000
+N <- 20 # 20, 1000
 M <- 100
 
 ### simulate data
@@ -22,7 +22,8 @@ sd_y <- sd(y_c)
 sd_X <- apply(X, 2, sd)
 
 r <- as.numeric(crossprod(X_c, y_c) / N) / (sd_y * sd_X)
-s <- sqrt(N) * r
+s <- r * sqrt((N - 2) / (1 - r*r))
+# s <_ r * sqrt(N)
 s2 <- s^2
 
 pvals_mat <- pchisq(s2, df = 1, lower = FALSE)

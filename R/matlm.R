@@ -18,6 +18,9 @@ matlm <- function(formula, data, ...,
   # - data_frame has no row names
   data <- as.data.frame(data)
   
+  ### vars
+  mode <- ifelse(missing(int), "marginal", "interaction")  
+  
   ### ind
   if(verbose > 0) {
     cat(" - computing indices...\n")
@@ -39,16 +42,18 @@ matlm <- function(formula, data, ...,
   pred <- matlm_pred(pred, ind = ind, num_batches = num_batches)
   stopifnot(pred_nrow(pred) == nobs_data)
   
-  
   ### extract model/response matrices
   y <- model.extract(model.frame(formula, data), "response")
   C <- model.matrix(formula, data)
+  if(mode == "interaction") {
+    d <- data[ind, int]
+  }
   
   stopifnot(nrow(C) == nobs_model)
   stopifnot(length(y) == nobs_model)
   
   N <- nobs_model
-    
+  
   ### test multiple predictors one by one
   y_orth <- matlm_orth(C, y)
   y_sc <- matlm_scale(y_orth)
@@ -56,12 +61,38 @@ matlm <- function(formula, data, ...,
   matlm_batch <- function(batch) 
   {
     X <- pred_batch(pred, batch)
+    M <- ncol(X)
     
-    X_orth <- matlm_orth(C, X)
+    # compute `X_sc`
+    X_orth <- switch(mode,
+      "marginal" = matlm_orth(C, X),
+      "interaction"  = {  
+        Xi <- diag(d) %*% X
+        matlm_orth(C, X, Xi)
+      }, 
+      stop("switch in X_orth"))
+    
     X_sc <- matlm_scale(X_orth)
+
+    # compute `Y_sc`
+    Y_sc <- switch(mode,
+      "marginal" = y_sc,
+      "interaction"  = {  
+        Y <- tcrossprod(y, rep(1, M))
+        Y_orth <- matlm_orth(C, X, Y)
+        matlm_scale(Y_orth)        
+      }, 
+      stop("switch in Y_sc"))
     
-    r <- as.numeric(crossprod(X_sc, y_sc) / N) 
-    s <- sqrt(N) * r
+    # compute test statistics via `r` 
+    stopifnot(class(Y_sc) == "matrix")
+    if(ncol(Y_sc) == 1) {
+      r <- as.numeric(crossprod(X_sc, Y_sc) / (N - 1))
+    } else {
+      r <- sapply(seq(1, ncol(Y_sc)), function(i) crossprod(X_sc[, i], Y_sc[, i]) / (N - 1))
+    }   
+    #s <- sqrt(N) * r
+    s <- r * sqrt((N - 2) / (1 - r*r))
     s2 <- s^2
 
     pvals <- pchisq(s2, df = 1, lower = FALSE)
@@ -104,8 +135,11 @@ matlm_mod <- function(formula, data, ...,
   # - data_frame has no row names
   data <- as.data.frame(data)
 
+  ### vars
   nobs_data <- nrow(data)
     
+  mode <- ifelse(missing(int), "marginal", "interaction")  
+  
   ### initialize `pred`
   if(verbose > 0) {
     cat(" - creating `matlmPred`...\n")
@@ -124,16 +158,24 @@ matlm_mod <- function(formula, data, ...,
     data_pred <- cbind(data, X)
         
     out <- sapply(predictors_mod, function(pred) {
-      formula_pred <- update(formula, paste(". ~ . +", pred))
+      formula_pred <- switch(mode,
+        "marginal" = update(formula, paste(". ~ . +", pred)),
+        "interaction" = update(formula, paste(". ~ . +", pred, "+", pred, "*", int)),
+        stop("switch formula_pred"))
       
       mod <- lm(formula_pred, data_pred, ...)
       
       effects <- coef(mod)
       var_pred <- tail(names(effects), 1)
-      stopifnot(var_pred == pred)
-    
-      estimate <- as.numeric(effects[pred])
-      se2 <- vcov(mod)[pred, pred]
+      
+      ret <- switch(mode,
+        "marginal" = stopifnot(var_pred == pred),
+        "interaction" = stopifnot(var_pred %in% 
+          c(paste0(pred, ":", int, "1"), paste0(int, "1:", pred))),
+        stop("switch"))
+      
+      estimate <- as.numeric(effects[var_pred])
+      se2 <- vcov(mod)[var_pred, var_pred]
     
       zscore <- estimate / sqrt(se2)
     
@@ -148,7 +190,7 @@ matlm_mod <- function(formula, data, ...,
   tab <- bind_rows(out)
   
   ### return
-  out <- list(tab = tab)
+  out <- list(mode = mode, tab = tab)
   
   return(out)
 }
