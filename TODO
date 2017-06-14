@@ -1,0 +1,8 @@
+## TODO
+
+- add more checks for the exposure variable (`int`) argument
+  in the interaction analysis
+    - it must be a factor
+    - create a function like `convert_fac2num` in `utils.R`
+    - check the name of interaction term in `matlm_mod`
+  
