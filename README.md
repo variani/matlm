@@ -12,7 +12,15 @@ The `matlm` R package fits linear models in matrix form and avoids calling `lm`.
 That makes computation efficient if many predictors need to be tested,
 while calling `lm` for every predictor results in a considerable overhead in computation time.
 
-Features (to be implemented):
+### References
+
+- Vignettes
+    - [Computation of linear models in matlm](https://variani.github.io/matlm/vignettes/computation.html)
+
+
+### Features 
+
+(yet to be implemented)
 
 - Split a set of predictors into batches
     - Parallel computation
