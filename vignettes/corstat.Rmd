@@ -1,0 +1,143 @@
+---
+title: "Correlated tests statistics"
+author: "Andrey Ziyatdinov"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    fig_caption: yes
+    toc: true
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{Computation of linear models in matlm}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r options, echo = F}
+opts_chunk$set(comment = NA, results = 'markup', tidy = F, message = F, warning = F, 
+  echo = T, cache = T,
+  fig.width = 6, fig.height = 6)
+```
+
+# About
+
+## Links
+
+- R script [demo/correlared-predictors.R](https://github.com/variani/matlm/blob/master/demo/correlared-predictors.R)
+
+
+# Packages
+
+```{r inc, cache = F}
+library(devtools)
+load_all("~/git/variani/matlm/")
+
+load_all("~/git/variani/qq/")
+```
+
+```{r inc2, cache = F}
+library(ggplot2)
+
+theme_set(theme_light())
+```
+
+# Simulations parameters
+
+```{r simpar}
+N <- 2e3
+M <- 2e3
+
+seed <- 1
+
+rho <- 0.9
+```
+
+# Independent predictors
+
+```{r simpred_uncor, dependson = "simpar"}
+simpred_uncor <- matlm_sim_randpred(seed = seed, N = N, M = M)
+```
+
+```{r assoc_uncor, dependson = -1}
+assoc_uncor <- with(simpred_uncor, matlm(form, dat, pred = pred))
+```
+
+```{r qq_uncor}
+qq_plot(assoc_uncor$tab$pval)
+```
+
+# Correlated predictors
+
+```{r simpred_cor, dependson = "simpar"}
+simpred_cor <- matlm_sim_randpred(seed = seed, N = N, M = M, rho = rho)
+```
+
+```{r assoc_cor, dependson = -1}
+assoc_cor <- with(simpred_cor, matlm(form, dat, pred = pred))
+```
+
+```{r qq_cor}
+qq_plot(assoc_cor$tab$pval)
+```
+
+## Covariance matrix among predictors
+
+The covariance matrix is pre-defined in `matlm_sim_randpred` function
+and has a simple form:
+
+- diagonal entries are 1;
+- off-diagonal entries are `rho` (equal here to `r rho`).
+
+```{r cmat, dependson = "simpar"}
+cmat <- matlm_sim_randpred(seed = seed, N = N, M = M, rho = rho, ret = "mat")
+```
+
+```{r show_cmat}
+# number of predictors
+M
+
+# dimenstions of matrix
+dim(cmat)
+
+# a sub-matrix
+cmat[1:5, 1:5]
+```
+
+## Covariance matrix among test statistics
+
+It can be shown the covariance matrix among test statistics (t-test) $s_i$
+is the _correlation_ matrix among predictors $x_i$:
+
+$cov(s_i, s_j) = cor(x_i, x_j)$
+
+This basic relationship is true for the simplest linear regression model:
+
+$y = \mu + \beta x_i + e$
+
+$e \sim \mathcal{N}(0, \sigma_e^2)$
+
+In other cases, e.g. related observations, some modifications are required.
+
+## Dummy correction of qq-plot
+
+```{r ch_inv}
+C <- matrix(rho, M, M)
+diag(C) <- 1
+
+ch <- chol(C)
+ch_inv <- solve(ch)
+```
+
+```{r correct_pvals}
+s_assoc <- assoc_cor$tab$zscore
+s_corrected <- as.numeric(s_assoc %*% ch_inv)
+
+pvals_corrected <- pchisq(s_corrected^2, 1, lower.tail = FALSE)
+```
+
+```{r qq_corrected}
+qq_plot(pvals_corrected)
+```
+
+
+ 
