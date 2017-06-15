@@ -16,6 +16,7 @@ while calling `lm` for every predictor results in a considerable overhead in com
 
 - Vignettes
     - [Computation of linear models in matlm](https://variani.github.io/matlm/vignettes/computation.html)
+    - [Correlated tests statistics](https://variani.github.io/matlm/vignettes/corstat.html)
 
 
 ### Features 
