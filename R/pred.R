@@ -83,6 +83,9 @@ pred_ncol <- function(x, ...) UseMethod("pred_ncol")
 #' @export pred_colnames
 pred_colnames <- function(x, ...) UseMethod("pred_colnames")
 
+#' @export pred_ind
+pred_ind <- function(x, ...) UseMethod("pred_ind")
+
 #' @export pred_slice
 pred_slice <- function(x, ind_row, ind_col, ...) UseMethod("pred_slice")
 
@@ -134,6 +137,13 @@ pred_colnames.matlmPred <- function(x, ...) colnames(x$data)
 pred_colnames.matlmPredBigMat <- function(x, ...) attach.big.matrix(x$data) %>% colnames
 
 #--------------
+# pred_ind
+#--------------
+
+#' @export 
+pred_ind.matlmPred <- function(x, ...) x$ind
+
+#--------------
 # pred_slice
 #--------------
 
@@ -172,7 +182,7 @@ pred_data.matlmPred <- function(x, ind_row, ind_col, ...)
 }
 
 #' @export 
-pred_batch.matlmPred <- function(x, batch = 1, ...)
+pred_batch.matlmPred <- function(x, batch = 1, ind, ...)
 {
   ### arg
   stopifnot(batch <= length(x$beg))
@@ -181,5 +191,5 @@ pred_batch.matlmPred <- function(x, batch = 1, ...)
   ind_col <- seq(x$beg[batch], x$end[batch])
   
   ### get data
-  pred_data(x, ind_col = ind_col, ...) 
+  pred_data(x, ind_col = ind_col, ind_row = ind, ...) 
 }

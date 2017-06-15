@@ -3,6 +3,7 @@ matlm <- function(formula, data, ...,
   varcov = NULL, transform = NULL,
   pred, int,
   num_batches = 1,
+  num_perm = 0, seed_perm,
   cores = 1,
   verbose = 0)
 {
@@ -13,13 +14,16 @@ matlm <- function(formula, data, ...,
   ### args
   missing_transform <- missing(transform)
   missing_varcov <- missing(varcov)
+  missing_seed_perm <- missing(seed_perm)
   
   ### convert `data` to data.fame
   # - data_frame has no row names
   data <- as.data.frame(data)
   
   ### vars
-  mode <- ifelse(missing(int), "marginal", "interaction")  
+  model <- ifelse(missing(int), "marginal", "interaction")  
+
+  permutation <- ifelse(num_perm > 0, "perm_x", "none")
   
   ### ind
   if(verbose > 0) {
@@ -45,7 +49,7 @@ matlm <- function(formula, data, ...,
   ### extract model/response matrices
   y <- model.extract(model.frame(formula, data), "response")
   C <- model.matrix(formula, data)
-  if(mode == "interaction") {
+  if(model == "interaction") {
     d <- data[ind, int]
   }
   
@@ -58,9 +62,10 @@ matlm <- function(formula, data, ...,
   y_orth <- matlm_orth(C, y)
   y_sc <- matlm_scale(y_orth)
   
-  matlm_batch_marginal <- function(batch)
+  ### local functions, further used by sapply/parSapply
+  matlm_batch_marginal <- function(batch, ind)
   {
-    X <- pred_batch(pred, batch)
+    X <- pred_batch(pred, batch, ind)
     
     # compute `X_sc`
     X_orth <- matlm_orth(C, X)
@@ -75,9 +80,9 @@ matlm <- function(formula, data, ...,
     list(data_frame(predictor = colnames(X), zscore = s, pval = pvals))  
   }
   
-  matlm_batch_interaction <- function(batch) 
+  matlm_batch_interaction <- function(batch, ind) 
   {
-    X <- pred_batch(pred, batch)
+    X <- pred_batch(pred, batch, ind)
     M <- ncol(X)
     
     # compute `X_sc`
@@ -100,24 +105,49 @@ matlm <- function(formula, data, ...,
     list(data_frame(predictor = colnames(X), zscore = s, pval = pvals))
   }
   
+  ### run in a loop
   if(cores > 1) {
     cl <- makeCluster(cores, type = "FORK")
-    out <- switch(mode,
+    out <- switch(model,
       "marginal" = parSapply(cl, seq(1, num_batches), matlm_batch_marginal),
       "interaction" = parSapply(cl, seq(1, num_batches), matlm_batch_interaction),
       stop("switch"))
       
     stopCluster(cl)
+    
+    tab <- bind_rows(out)
   } else {
-    out <- switch(mode,
-      "marginal" = sapply(seq(1, num_batches), matlm_batch_marginal),
-      "interaction" = sapply(seq(1, num_batches), matlm_batch_interaction),
-      stop("switch"))
+    out <- switch(permutation,
+      "none" = {
+        out <- switch(model,
+          "marginal" = sapply(seq(1, num_batches), matlm_batch_marginal),
+          "interaction" = sapply(seq(1, num_batches), matlm_batch_interaction),
+          stop("switch by model"))
+        tab <- bind_rows(out)
+      },
+      "perm_x" = {
+        ind <- pred_ind(pred)
+    
+        L <- num_perm
+        N <- length(ind)
+        P <- sample(ind, size = N * L, replace = TRUE) %>% matrix(nrow = N, ncol = L)
+        
+        pout <- sapply(seq(1:L), function(l) {
+          out <- switch(model,
+            "marginal" = sapply(seq(1, num_batches), matlm_batch_marginal),
+            "interaction" = sapply(seq(1, num_batches), matlm_batch_interaction),
+            stop("switch by model"))
+          tab <- bind_rows(out)
+          
+          return(tab)
+        }, simplify = FALSE)
+        tab <- pout#bind_cols(pout)
+      },
+      stop("switch by permutation"))
   }
-  tab <- bind_rows(out)
   
   ### return
-  out <- list(tab = tab)
+  out <- list(model = model, tab = tab)
   
   return(out)
 }
@@ -144,7 +174,7 @@ matlm_mod <- function(formula, data, ...,
   ### vars
   nobs_data <- nrow(data)
     
-  mode <- ifelse(missing(int), "marginal", "interaction")  
+  model <- ifelse(missing(int), "marginal", "interaction")  
   
   ### initialize `pred`
   if(verbose > 0) {
@@ -164,7 +194,7 @@ matlm_mod <- function(formula, data, ...,
     data_pred <- cbind(data, X)
         
     out <- sapply(predictors_mod, function(pred) {
-      formula_pred <- switch(mode,
+      formula_pred <- switch(model,
         "marginal" = update(formula, paste(". ~ . +", pred)),
         "interaction" = update(formula, paste(". ~ . +", pred, "+", pred, "*", int)),
         stop("switch formula_pred"))
@@ -174,7 +204,7 @@ matlm_mod <- function(formula, data, ...,
       effects <- coef(mod)
       var_pred <- tail(names(effects), 1)
       
-      ret <- switch(mode,
+      ret <- switch(model,
         "marginal" = stopifnot(var_pred == pred),
         "interaction" = stopifnot(var_pred %in% 
           c(paste0(pred, ":", int, "1"), paste0(int, "1:", pred))),
@@ -196,7 +226,7 @@ matlm_mod <- function(formula, data, ...,
   tab <- bind_rows(out)
   
   ### return
-  out <- list(mode = mode, tab = tab)
+  out <- list(model = model, tab = tab)
   
   return(out)
 }
