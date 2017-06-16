@@ -20,6 +20,7 @@ Suggests:
     testthat
 Collate:
     'package.R'
+    'classes.R'
     'zzz.R'
     'utils.R'
     'sim.R'
@@ -27,4 +28,4 @@ Collate:
     'pred.R'
     'ids.R'
     'matlm.R'
-RoxygenNote: 6.0.1
+RoxygenNote: 5.0.1

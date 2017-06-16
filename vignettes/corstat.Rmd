@@ -7,6 +7,7 @@ output:
     fig_caption: yes
     toc: true
     number_sections: true
+bibliography: ref.bib    
 vignette: >
   %\VignetteIndexEntry{Computation of linear models in matlm}
   %\VignetteEngine{knitr::rmarkdown}
@@ -36,6 +37,7 @@ load_all("~/git/variani/qq/")
 ```
 
 ```{r inc2, cache = F}
+library(pander)
 library(ggplot2)
 
 theme_set(theme_light())
@@ -105,7 +107,7 @@ cmat[1:5, 1:5]
 
 ## Covariance matrix among test statistics
 
-It can be shown the covariance matrix among test statistics (t-test) $s_i$
+It can be shown [@Joo2016] that the covariance matrix among test statistics (t-test) $s_i$
 is the _correlation_ matrix among predictors $x_i$:
 
 $cov(s_i, s_j) = cor(x_i, x_j)$
@@ -116,7 +118,7 @@ $y = \mu + \beta x_i + e$
 
 $e \sim \mathcal{N}(0, \sigma_e^2)$
 
-In other cases, e.g. related observations, some modifications are required.
+In other cases, e.g. related observations [@Joo2016], some modifications are required.
 
 ## Dummy correction of qq-plot
 
@@ -139,5 +141,36 @@ pvals_corrected <- pchisq(s_corrected^2, 1, lower.tail = FALSE)
 qq_plot(pvals_corrected)
 ```
 
+# Permutation tests for correlated predictors
 
+[@Conneely2007] introduced $P_{act}$:
+
+> To calculate $P_{perm}$, we first created 1,000 permutations of the original data by randomly shuffling individual genotype vectors while leaving the trait data and any covariates intact. In this way, the permuted samples simulated the null hypothesis of no association but maintained the original correlation between genotypes, between traits, and between traits and covariates. We tested each of these 1,000 samples for association and estimated $P_{perm}$ as the proportion of samples with a $P_{min}$ value as low as that observed in the original data
+
+
+```{r tab, echo = F}
+load("pacts.rdata")
+
+tab <- with(pacts,
+  within(tab, {
+    alpha <- alpha
+    pval_BF <- alpha / M
+    N <- N
+    N_effective <- round(N * (pact[1] / pact), 0)
+  }))    
+```
+
+```{r show_tab, echo = F, results = "asis", dependson = -1}
+pander(tab)
+```
+
+In our simulations, we computed $P_{act}$ as an alternative to the Bonferroni correction,
+while varying the value of `rho`.
+
+- the sample size `r pacts$N`
+- the number of predictors `r pacts$M`
+- the number of permutations `r pacts$L`
+
+
+# References
  

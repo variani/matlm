@@ -47,6 +47,9 @@ matlm <- function(formula, data, ...,
   stopifnot(pred_nrow(pred) == nobs_data)
   
   ### extract model/response matrices
+  if(verbose > 0) {
+    cat(" - model matrices & response...\n")
+  }  
   y <- model.extract(model.frame(formula, data), "response")
   C <- model.matrix(formula, data)
   if(model == "interaction") {
@@ -77,6 +80,8 @@ matlm <- function(formula, data, ...,
     
     pvals <- pchisq(s2, df = 1, lower = FALSE)
     
+    gc()
+    
     list(data_frame(predictor = colnames(X), zscore = s, pval = pvals))  
   }
   
@@ -102,53 +107,79 @@ matlm <- function(formula, data, ...,
 
     pvals <- pchisq(s2, df = 1, lower = FALSE)
     
+    gc()
+    
     list(data_frame(predictor = colnames(X), zscore = s, pval = pvals))
   }
   
-  ### run in a loop
+  ### run in a loop (tab)
+  if(verbose > 0) {
+    cat(" - computing association `tab`...\n")
+  }  
+
   if(cores > 1) {
     cl <- makeCluster(cores, type = "FORK")
     out <- switch(model,
       "marginal" = parSapply(cl, seq(1, num_batches), matlm_batch_marginal),
       "interaction" = parSapply(cl, seq(1, num_batches), matlm_batch_interaction),
-      stop("switch"))
-      
+      stop("switch by model (tab)"))
     stopCluster(cl)
-    
-    tab <- bind_rows(out)
   } else {
-    out <- switch(permutation,
-      "none" = {
-        out <- switch(model,
-          "marginal" = sapply(seq(1, num_batches), matlm_batch_marginal),
-          "interaction" = sapply(seq(1, num_batches), matlm_batch_interaction),
-          stop("switch by model"))
-        tab <- bind_rows(out)
-      },
-      "perm_x" = {
-        ind <- pred_ind(pred)
-    
-        L <- num_perm
-        N <- length(ind)
-        P <- sample(ind, size = N * L, replace = TRUE) %>% matrix(nrow = N, ncol = L)
-        
-        pout <- sapply(seq(1:L), function(l) {
-          out <- switch(model,
-            "marginal" = sapply(seq(1, num_batches), matlm_batch_marginal),
-            "interaction" = sapply(seq(1, num_batches), matlm_batch_interaction),
-            stop("switch by model"))
-          tab <- bind_rows(out)
-          
-          return(tab)
-        }, simplify = FALSE)
-        tab <- pout#bind_cols(pout)
-      },
-      stop("switch by permutation"))
+    out <- switch(model,
+      "marginal" = sapply(seq(1, num_batches), matlm_batch_marginal),
+      "interaction" = sapply(seq(1, num_batches), matlm_batch_interaction),
+    stop("switch by model (tab)"))
   }
+  tab <- bind_rows(out)
+
+  ### run in a loop (permutation tab)
+  if(verbose > 0) {
+    cat(" - computing permutation `ptab`...\n")
+  }  
+  
+  pout <- switch(permutation,
+    "none" = NULL,
+    "perm_x" = {
+      ind <- pred_ind(pred)
+    
+      L <- num_perm
+      N <- length(ind)
+      P <- sample(ind, size = N * L, replace = TRUE) %>% 
+        matrix(nrow = N, ncol = L)
+        
+      pout <- sapply(seq(1:L), function(l) {
+        if(verbose > 0) {
+          cat("  --  permutation", l, "/", L, "\n")
+        }  
+      
+        if(cores > 1) {
+          cl <- makeCluster(cores, type = "FORK")
+          out <- switch(model,
+            "marginal" = parSapply(cl, seq(1, num_batches), matlm_batch_marginal, ind = P[, l]),
+            "interaction" = parSapply(cl, seq(1, num_batches), matlm_batch_interaction, ind = P[, l]),
+            stop("switch by model (tab)"))
+          stopCluster(cl)
+        } else {
+          out <- switch(model,
+            "marginal" = sapply(seq(1, num_batches), matlm_batch_marginal, ind = P[, l]),
+            "interaction" = sapply(seq(1, num_batches), matlm_batch_interaction, ind = P[, l]),
+          stop("switch by model (tab)"))
+        }
+        tab <- bind_rows(out)
+
+        tab <- mutate(tab, perm = l) %>%
+          select(perm, everything())
+          
+        return(tab)
+      }, simplify = FALSE)
+    },
+    stop("switch by permutation"))
+  ptab <- bind_rows(pout)
   
   ### return
-  out <- list(model = model, tab = tab)
+  out <- list(model = model, permutation = permutation, tab = tab, ptab = ptab)
   
+  oldClass(out) <- c("matlmList", oldClass(out))
   return(out)
 }
 
