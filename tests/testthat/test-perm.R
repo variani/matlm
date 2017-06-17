@@ -1,10 +1,13 @@
 context("perm")
 
 test_that("margial", {
+  stopifnot(require(magrittr))
+  stopifnot(require(dplyr))    
+  
   seed <- 1
   N <- 50
-  M <- 20
-  L <- 50
+  M <- 10
+  L <- 10
   
   rho <- 0.9
   

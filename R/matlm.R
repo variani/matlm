@@ -24,6 +24,8 @@ matlm <- function(formula, data, ...,
   model <- ifelse(missing(int), "marginal", "interaction")  
 
   permutation <- ifelse(num_perm > 0, "perm_x", "none")
+
+  weighted <- (!missing_transform | !missing_varcov)
   
   ### ind
   if(verbose > 0) {
@@ -38,8 +40,34 @@ matlm <- function(formula, data, ...,
     cat("  -- nobs_data", nobs_data, "/ nobs_model", nobs_model, 
       "/ nobs_omit", nobs_omit, "\n")
   }    
-  
-  ### initialize `pred`
+
+  ### compute rotation matrix `transform`
+  if(weighted) {
+    if(missing_transform) {
+      stopifnot(!missing_varcov)
+      
+      nobs_varcov <- nrow(varcov)
+      stopifnot(nobs_varcov == nobs_data)
+      if(nobs_omit) {
+        varcov <- varcov[ind, ind]
+      }
+      
+      # perform EVD on `varcov` to get `transform`
+      evd <- eigen(varcov, symmetric = TRUE)
+      vectors <- evd$vectors
+      values <- evd$values
+    
+      transform <- vectors %*% diag(1/sqrt(values)) %*% t(vectors) # is symmetric
+    } else {
+      nobs_transform <- nrow(transform)
+      stopifnot(nobs_transform == nobs_data)
+      if(nobs_omit) {
+        transform <- transform[ind, ind]            
+      }
+    }
+  }
+   
+  ### initialize `pred` using `ind`
   if(verbose > 0) {
     cat(" - creating `matlmPred`...\n")
   }  
@@ -61,6 +89,12 @@ matlm <- function(formula, data, ...,
   
   N <- nobs_model
   
+  ### apply `transform` if necessary
+  if(weighted) {
+    y <- crossprod(transform, y)
+    C <- crossprod(transform, C)
+  }
+  
   ### test multiple predictors one by one
   y_orth <- matlm_orth(C, y)
   y_sc <- matlm_scale(y_orth)
@@ -71,6 +105,9 @@ matlm <- function(formula, data, ...,
     X <- pred_batch(pred, batch, ind)
     
     # compute `X_sc`
+    if(weighted) {
+      X <- crossprod(transform, X)
+    }
     X_orth <- matlm_orth(C, X)
     X_sc <- matlm_scale(X_orth)
     
@@ -184,7 +221,7 @@ matlm <- function(formula, data, ...,
 }
 
 #' @export
-matlm_mod <- function(formula, data, ..., 
+matlm_mod <- function(formula, data, weights, ..., 
   varcov = NULL, transform = NULL,
   pred, int,
   num_batches = 1,
@@ -195,6 +232,7 @@ matlm_mod <- function(formula, data, ...,
   env <- parent.frame(1)
   
   ### args
+  missing_weights <- missing(weights)
   missing_transform <- missing(transform)
   missing_varcov <- missing(varcov)
   
@@ -223,14 +261,21 @@ matlm_mod <- function(formula, data, ...,
     colnames(X) <- predictors_mod
     
     data_pred <- cbind(data, X)
-        
+  
     out <- sapply(predictors_mod, function(pred) {
       formula_pred <- switch(model,
         "marginal" = update(formula, paste(". ~ . +", pred)),
         "interaction" = update(formula, paste(". ~ . +", pred, "+", pred, "*", int)),
         stop("switch formula_pred"))
       
-      mod <- lm(formula_pred, data_pred, ...)
+      if(missing_weights) {
+        mod <- lm(formula_pred, data_pred, ...)
+      } else {
+        stopifnot(!("weights" %in% names(data_pred)))
+        data_pred$weights <- weights
+        
+        mod <- lm(formula_pred, data_pred, weights = weights, ...)
+      }
       
       effects <- coef(mod)
       var_pred <- tail(names(effects), 1)
