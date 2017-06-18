@@ -61,5 +61,9 @@ matlm_proj_mut <- function(C, X)
   norms <- apply(C * C, 2, sum)
   prod <- apply(C * X, 2, sum)
   
-  C %*% diag(prod / norms) 
+  if(ncol(C) == 1) {
+    (prod / norms) * C
+  } else {
+    C %*% diag(prod / norms) 
+  }
 }

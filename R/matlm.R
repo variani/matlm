@@ -82,6 +82,9 @@ matlm <- function(formula, data, ...,
   C <- model.matrix(formula, data)
   if(model == "interaction") {
     d <- data[ind, int]
+    if(class(d) == "factor") {
+      d <- as.numeric(d) - 1
+    }
   }
   
   stopifnot(nrow(C) == nobs_model)
@@ -126,9 +129,15 @@ matlm <- function(formula, data, ...,
   {
     X <- pred_batch(pred, batch, ind)
     M <- ncol(X)
+
+    Xi <- diag(d) %*% X
+    
+    if(weighted) {
+      X <- crossprod(transform, X)
+      Xi <- crossprod(transform, Xi)
+    }
     
     # compute `X_sc`
-    Xi <- diag(d) %*% X
     X_orth <- matlm_orth(C, X, Xi)
     X_sc <- matlm_scale(X_orth)
 

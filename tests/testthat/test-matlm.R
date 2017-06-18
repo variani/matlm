@@ -1,7 +1,7 @@
 context("matlm")
 
 test_that("matlm: basics", {
-  N <- 1000
+  N <- 100
   M <- 5
   
   simdat <- matlm_sim_randpred(seed = 10, N = N, M = M) 
@@ -13,7 +13,7 @@ test_that("matlm: basics", {
 })
 
 test_that("matlm: interaction", {
-  N <- 1000
+  N <- 500
   M <- 5
   
   simdat <- matlm_sim_randpred(seed = 1, N = N, M = M) 
