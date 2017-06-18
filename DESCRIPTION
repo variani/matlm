@@ -15,7 +15,8 @@ Imports:
     tibble,
     dplyr,
     magrittr,
-    parallel
+    parallel,
+    tictoc
 Suggests:
     testthat
 Collate:

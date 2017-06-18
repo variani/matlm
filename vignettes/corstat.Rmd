@@ -149,7 +149,7 @@ qq_plot(pvals_corrected)
 
 
 ```{r tab, echo = F}
-load("pacts.rdata")
+data(pacts)
 
 tab <- with(pacts,
   within(tab, {

@@ -7,6 +7,10 @@ matlm <- function(formula, data, ...,
   cores = 1,
   verbose = 0)
 {
+  tic.clearlog()
+  tic("matlm")
+  tic("args")
+
   ### call
   mc <- match.call()
   env <- parent.frame(1)
@@ -26,8 +30,12 @@ matlm <- function(formula, data, ...,
   permutation <- ifelse(num_perm > 0, "perm_x", "none")
 
   weighted <- (!missing_transform | !missing_varcov)
+  toc(log = TRUE, quiet = TRUE)
   
   ### ind
+  
+  tic("indices")
+  
   if(verbose > 0) {
     cat(" - computing indices...\n")
   }
@@ -40,8 +48,10 @@ matlm <- function(formula, data, ...,
     cat("  -- nobs_data", nobs_data, "/ nobs_model", nobs_model, 
       "/ nobs_omit", nobs_omit, "\n")
   }    
-
+  toc(log = TRUE, quiet = TRUE)
+  
   ### compute rotation matrix `transform`
+  tic("transform")  
   if(weighted) {
     if(missing_transform) {
       stopifnot(!missing_varcov)
@@ -66,15 +76,19 @@ matlm <- function(formula, data, ...,
       }
     }
   }
+  toc(log = TRUE, quiet = TRUE)
    
   ### initialize `pred` using `ind`
+  tic("pred")
   if(verbose > 0) {
     cat(" - creating `matlmPred`...\n")
   }  
   pred <- matlm_pred(pred, ind = ind, num_batches = num_batches)
   stopifnot(pred_nrow(pred) == nobs_data)
+  toc(log = TRUE, quiet = TRUE)
   
   ### extract model/response matrices
+  tic("model matrices")
   if(verbose > 0) {
     cat(" - model matrices & response...\n")
   }  
@@ -91,14 +105,18 @@ matlm <- function(formula, data, ...,
   stopifnot(length(y) == nobs_model)
   
   N <- nobs_model
+  toc(log = TRUE, quiet = TRUE)
   
   ### apply `transform` if necessary
+  tic("apply transform")
   if(weighted) {
     y <- crossprod(transform, y)
     C <- crossprod(transform, C)
   }
+  toc(log = TRUE, quiet = TRUE)
   
   ### test multiple predictors one by one
+  tic("tests")
   y_orth <- matlm_orth(C, y)
   y_sc <- matlm_scale(y_orth)
   
@@ -163,7 +181,7 @@ matlm <- function(formula, data, ...,
     cat(" - computing association `tab`...\n")
   }  
 
-  if(cores > 1) {
+  if(cores > 0) {
     cl <- makeCluster(cores, type = "FORK")
     out <- switch(model,
       "marginal" = parSapply(cl, seq(1, num_batches), matlm_batch_marginal),
@@ -221,11 +239,28 @@ matlm <- function(formula, data, ...,
     },
     stop("switch by permutation"))
   ptab <- bind_rows(pout)
+  toc(log = TRUE, quiet = TRUE)
   
   ### return
-  out <- list(model = model, permutation = permutation, tab = tab, ptab = ptab)
+  tic("return")
+  out <- list(model = model, permutation = permutation, tab = tab, ptab = ptab,
+    nobs_data = nobs_data, nobs_model = nobs_model, nobs_omit = nobs_omit,
+    npred = pred_ncol(pred),
+    cores = cores)
   
-  oldClass(out) <- c("matlmList", oldClass(out))
+  oldClass(out) <- c("matlmResults", "matlmList", oldClass(out))
+  toc(log = TRUE, quiet = TRUE)
+  toc(log = TRUE, quiet = TRUE) # matlm
+  
+  # save comp. time
+  out$tictoc <- tic.log(format = FALSE)  
+  out$tictoc_formated <- tic.log(format = TRUE)
+  tic.clearlog()  
+  
+  tictoc_matlm <- tail(out$tictoc, 1)
+  tictoc_elapsed <- tictoc_matlm[[1]]$toc - tictoc_matlm[[1]]$tic
+  out$tictoc_elapsed <- unname(tictoc_elapsed)
+
   return(out)
 }
 

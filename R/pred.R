@@ -58,7 +58,8 @@ matlm_pred <- function(x, ind = NULL, num_batches = 1, ...)
 
     
   # process batches
-  beg <- seq(1, pred_ncol(out), length = out$num_batches)
+  beg <- seq(1, pred_ncol(out), length = out$num_batches) %>% 
+    floor
   end <- c(beg[-1] - 1, pred_ncol(out))
   stopifnot(all(beg <= pred_ncol(out)))
   stopifnot(all(end <= pred_ncol(out)))
