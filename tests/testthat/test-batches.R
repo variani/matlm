@@ -28,7 +28,7 @@ test_that("many batches (matrix)", {
   simdat <- matlm_sim_randpred(seed = 1, N = N, M = M) 
 
   pred <- simdat$pred
-  bpred <- as.big.matrix(pred)
+  bpred <- as.big.matrix(pred, backingfile = "pred.bin", descriptorfile = "pred.desc")
   
   assoc1 <- matlm(simdat$form, simdat$dat, pred = bpred, num_batches = 1)
   assoc2 <- matlm(simdat$form, simdat$dat, pred = bpred, num_batches = 2)

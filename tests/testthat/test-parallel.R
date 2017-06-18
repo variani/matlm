@@ -19,11 +19,12 @@ test_that("2 cores (bigmemory/descriptor)", {
   simdat <- matlm_sim_randpred(seed = 1, N = N, M = M) 
 
   pred <- simdat$pred
-  bpred <- as.big.matrix(pred)
-  bdesc <- describe(bpred)
-    
-  assoc1 <- matlm(simdat$form, simdat$dat, pred = bdesc, num_batches = 2)
-  assoc2 <- matlm(simdat$form, simdat$dat, pred = bdesc, num_batches = 2, cores = 2)
+  #bpred <- as.big.matrix(pred)
+  #bdesc <- describe(bpred)
+  bpred <- as.big.matrix(pred, backingfile = "pred.bin", descriptorfile = "pred.desc")
+      
+  assoc1 <- matlm(simdat$form, simdat$dat, pred = bpred, num_batches = 2)
+  assoc2 <- matlm(simdat$form, simdat$dat, pred = bpred, num_batches = 2, cores = 2)
  
   expect_equal(assoc1$tab$pval, assoc2$tab$pval, tol = 1e-10)
 })
