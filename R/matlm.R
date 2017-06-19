@@ -6,7 +6,7 @@ matlm <- function(formula, data, ...,
   num_batches = 1,
   path_pred = ".",
   num_perm = 0, seed_perm,
-  cores = 0,
+  cores = 1,
   verbose = 0)
 {
   tic.clearlog()
@@ -226,7 +226,7 @@ matlm <- function(formula, data, ...,
     cat(" - computing association `tab`...\n")
   }  
 
-  if(cores > 0) {
+  if(cores > 1) {
     cl <- makeCluster(cores, type = "FORK")
     out <- switch(model,
       "marginal" = parSapply(cl, seq(1, num_batches), function(b)
@@ -298,7 +298,6 @@ matlm <- function(formula, data, ...,
     npred = pred_ncol(pred),
     cores = cores)
 
-  
   oldClass(out) <- c("matlmResults", "matlmList", oldClass(out))
   toc(log = TRUE, quiet = TRUE)
   toc(log = TRUE, quiet = TRUE) # matlm
