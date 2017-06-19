@@ -21,7 +21,7 @@ test_that("many batches (matrix)", {
   expect_error(matlm(simdat$form, simdat$dat, pred = simdat$pred, num_batches = M + 1))   
 })
 
-test_that("many batches (matrix)", {
+test_that("many batches (big matrix)", {
   N <- 10
   M <- 5
   

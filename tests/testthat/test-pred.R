@@ -1,6 +1,8 @@
 context("pred")
 
 test_that("matlmPredMat: matrix", {
+  stopifnot(require(bigmemory))
+  
   nrow <- 2
   ncol <- 2
   
@@ -13,7 +15,9 @@ test_that("matlmPredMat: matrix", {
   expect_true(pred_ncol(pred) == ncol)
 })
 
-test_that("matlmPredMat: big.matrix", {
+test_that("matlmPredBigMat: big.matrix", {
+  stopifnot(require(bigmemory))
+  
   nrow <- 2
   ncol <- 2
   
@@ -28,7 +32,9 @@ test_that("matlmPredMat: big.matrix", {
   expect_true(pred_ncol(pred) == ncol)
 })
 
-test_that("matlmPredMat: big.matrix.descriptor", {
+test_that("matlmPredBigMat: big.matrix.descriptor", {
+  stopifnot(require(bigmemory))
+  
   nrow <- 2
   ncol <- 2
   
@@ -42,5 +48,54 @@ test_that("matlmPredMat: big.matrix.descriptor", {
   
   expect_true(pred_nrow(pred) == nrow)
   expect_true(pred_ncol(pred) == ncol)
+})
+
+test_that("matlmPredMat: bigmemory files", {
+  stopifnot(require(bigmemory))
+  
+  nrow <- 2
+  ncol <- 2
+  
+  mat <- matrix(2, nrow = nrow, ncol = ncol)
+  bmat <- as.big.matrix(mat, backingfile = "pred.bin", descriptorfile = "pred.desc")
+      
+  pred <- matlm_pred(bmat)
+  
+  expect_true(all(c("matlmPredBigMat", "matlmPred") %in% class(pred)))
+  
+  expect_true(pred_nrow(pred) == nrow)
+  expect_true(pred_ncol(pred) == ncol)
+})
+
+test_that("matlmPredMat: external bigmemory files", {
+  stopifnot(require(bigmemory))
+  
+  N <- 100
+  M <- 5
+  
+  simdat <- matlm_sim_randpred(seed = 10, N = N, M = M)
+  
+  bmat0 <- as.big.matrix(simdat$pred, backingfile = "pred.bin", 
+    descriptorfile = "pred.desc", binary = TRUE)
+  
+  desc <- readRDS("pred.desc")   
+  bmat <- attach.big.matrix(desc)
+  
+  assoc1 <- matlm(simdat$form, simdat$dat, pred = bmat, num_batches = 2)
+  #assoc2 <- matlm(simdat$form, simdat$dat, pred = bmat, num_batches = 2, cores = 2)
+})
+
+test_that("matlmPredBigMat: matlm", {
+  stopifnot(require(bigmemory))
+  
+  N <- 100
+  M <- 5
+  
+  simdat <- matlm_sim_randpred(seed = 10, N = N, M = M) 
+  
+  bmat <- as.big.matrix(simdat$pred)
+  pred <- matlm_pred(bmat)
+  
+  #assoc <- matlm(simdat$form, simdat$dat, pred = pred)
 })
 

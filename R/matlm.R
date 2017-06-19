@@ -1,10 +1,12 @@
 #' @export
 matlm <- function(formula, data, ..., 
-  varcov = NULL, transform = NULL,
+  varcov = NULL, transform = NULL, 
+  ids = NULL,
   pred, int,
   num_batches = 1,
+  path_pred = ".",
   num_perm = 0, seed_perm,
-  cores = 1,
+  cores = 0,
   verbose = 0)
 {
   tic.clearlog()
@@ -18,7 +20,12 @@ matlm <- function(formula, data, ...,
   ### args
   missing_transform <- missing(transform)
   missing_varcov <- missing(varcov)
+
+  missing_ids <- missing(ids)  
+
   missing_seed_perm <- missing(seed_perm)
+
+  stopifnot(class(formula) == "formula")
   
   ### convert `data` to data.fame
   # - data_frame has no row names
@@ -33,16 +40,15 @@ matlm <- function(formula, data, ...,
   toc(log = TRUE, quiet = TRUE)
   
   ### ind
-  
   tic("indices")
   
   if(verbose > 0) {
     cat(" - computing indices...\n")
   }
-  ind <- matlm_ind(formula, data, ...)
+  ind_model <- matlm_ind(formula, data, ...)
 
   nobs_data <- nrow(data)
-  nobs_model <- length(ind)
+  nobs_model <- length(ind_model)
   nobs_omit <- nobs_data - nobs_model
   if(verbose > 1) {
     cat("  -- nobs_data", nobs_data, "/ nobs_model", nobs_model, 
@@ -51,14 +57,31 @@ matlm <- function(formula, data, ...,
   toc(log = TRUE, quiet = TRUE)
   
   ### compute rotation matrix `transform`
-  tic("transform")  
+  tic("transform") 
+  
+  if(verbose > 0) {
+    cat(" - computing transform...\n")
+  }
+   
   if(weighted) {
     if(missing_transform) {
       stopifnot(!missing_varcov)
       
       nobs_varcov <- nrow(varcov)
-      stopifnot(nobs_varcov == nobs_data)
-      if(nobs_omit) {
+      if(nobs_varcov == nobs_data) {
+        if(nobs_omit) {
+          varcov <- varcov[ind, ind]
+        }
+      } else {
+        stopifnot(!missing_ids)
+        
+        ids_model <- ids[ind_model]
+        
+        stopifnot(!is.null(rownames(varcov)))
+        ids_varcov <- rownames(varcov)
+        
+        stopifnot(all(ids_model %in% ids_varcov))
+        ind <- which(ids_varcov %in% ids_model)
         varcov <- varcov[ind, ind]
       }
       
@@ -70,9 +93,22 @@ matlm <- function(formula, data, ...,
       transform <- vectors %*% diag(1/sqrt(values)) %*% t(vectors) # is symmetric
     } else {
       nobs_transform <- nrow(transform)
-      stopifnot(nobs_transform == nobs_data)
-      if(nobs_omit) {
-        transform <- transform[ind, ind]            
+      
+      if(nobs_transform == nobs_data) {
+        if(nobs_omit) {
+          transform <- transform[ind, ind]            
+        }
+      } else {
+        stopifnot(!missing_ids)
+        
+        ids_model <- ids[ind_model]
+        
+        stopifnot(!is.null(rownames(transform)))
+        ids_transform <- rownames(transform)
+        
+        stopifnot(all(ids_model %in% ids_transform))
+        ind <- which(ids_transform %in% ids_model)
+        transform <- transform[ind, ind]
       }
     }
   }
@@ -83,7 +119,8 @@ matlm <- function(formula, data, ...,
   if(verbose > 0) {
     cat(" - creating `matlmPred`...\n")
   }  
-  pred <- matlm_pred(pred, ind = ind, num_batches = num_batches)
+  pred <- matlm_pred(pred, ind = ind_model, num_batches = num_batches, path_pred = path_pred)
+  
   stopifnot(pred_nrow(pred) == nobs_data)
   toc(log = TRUE, quiet = TRUE)
   
@@ -95,7 +132,7 @@ matlm <- function(formula, data, ...,
   y <- model.extract(model.frame(formula, data), "response")
   C <- model.matrix(formula, data)
   if(model == "interaction") {
-    d <- data[ind, int]
+    d <- data[ind_model, int]
     if(class(d) == "factor") {
       d <- as.numeric(d) - 1
     }
@@ -123,6 +160,10 @@ matlm <- function(formula, data, ...,
   ### local functions, further used by sapply/parSapply
   matlm_batch_marginal <- function(batch, ind)
   {
+    if(verbose > 1) {
+      cat("  --  bathc", batch, "/", num_batches, "\n")
+    }
+    
     X <- pred_batch(pred, batch, ind)
     
     # compute `X_sc`
@@ -145,6 +186,10 @@ matlm <- function(formula, data, ...,
   
   matlm_batch_interaction <- function(batch, ind) 
   {
+    if(verbose > 1) {
+      cat("  --  bathc", batch, "/", num_batches, "\n")
+    }
+    
     X <- pred_batch(pred, batch, ind)
     M <- ncol(X)
 
@@ -184,14 +229,18 @@ matlm <- function(formula, data, ...,
   if(cores > 0) {
     cl <- makeCluster(cores, type = "FORK")
     out <- switch(model,
-      "marginal" = parSapply(cl, seq(1, num_batches), matlm_batch_marginal),
-      "interaction" = parSapply(cl, seq(1, num_batches), matlm_batch_interaction),
+      "marginal" = parSapply(cl, seq(1, num_batches), function(b)
+        matlm_batch_marginal(b, ind_model)),
+      "interaction" = parSapply(cl, seq(1, num_batches), function(b)
+        matlm_batch_interaction(b, ind_model)),
       stop("switch by model (tab)"))
     stopCluster(cl)
   } else {
     out <- switch(model,
-      "marginal" = sapply(seq(1, num_batches), matlm_batch_marginal),
-      "interaction" = sapply(seq(1, num_batches), matlm_batch_interaction),
+      "marginal" = sapply(seq(1, num_batches), function(b)
+        matlm_batch_marginal(b, ind_model)),
+      "interaction" = sapply(seq(1, num_batches), function(b)
+        matlm_batch_interaction(b, ind_model)),
     stop("switch by model (tab)"))
   }
   tab <- bind_rows(out)
@@ -204,7 +253,7 @@ matlm <- function(formula, data, ...,
   pout <- switch(permutation,
     "none" = NULL,
     "perm_x" = {
-      ind <- pred_ind(pred)
+      ind <- ind_model
     
       L <- num_perm
       N <- length(ind)
@@ -243,10 +292,12 @@ matlm <- function(formula, data, ...,
   
   ### return
   tic("return")
-  out <- list(model = model, permutation = permutation, tab = tab, ptab = ptab,
+
+  out <- list(model = model, weighted = weighted, permutation = permutation, tab = tab, ptab = ptab,
     nobs_data = nobs_data, nobs_model = nobs_model, nobs_omit = nobs_omit,
     npred = pred_ncol(pred),
     cores = cores)
+
   
   oldClass(out) <- c("matlmResults", "matlmList", oldClass(out))
   toc(log = TRUE, quiet = TRUE)
@@ -267,7 +318,9 @@ matlm <- function(formula, data, ...,
 #' @export
 matlm_mod <- function(formula, data, weights, ..., 
   varcov = NULL, transform = NULL,
-  pred, int,
+  pred, 
+  path_pred = ".",
+  int,
   num_batches = 1,
   verbose = 0)
 {
@@ -293,7 +346,7 @@ matlm_mod <- function(formula, data, weights, ...,
   if(verbose > 0) {
     cat(" - creating `matlmPred`...\n")
   }  
-  pred <- matlm_pred(pred, num_batches = num_batches)
+  pred <- matlm_pred(pred, num_batches = num_batches, path_pred = path_pred)
   stopifnot(pred_nrow(pred) == nobs_data)
   
   ### test multiple predictors one by one

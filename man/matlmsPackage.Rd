@@ -8,4 +8,3 @@
 \description{
 Linear models in matrix form.
 }
-

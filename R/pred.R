@@ -15,12 +15,12 @@
 #--------------
 
 #' @export
-matlm_pred <- function(x, ind = NULL, num_batches = 1, ...)
+matlm_pred <- function(x, ind = NULL, num_batches = 1, path_pred = ".", ...)
 {
   ### args
   stopifnot(!any(duplicated(ind)))
   
-  out <- list(num_batches = num_batches)
+  out <- list(num_batches = num_batches, path = path_pred)
   
   if(class(x) == "matrix") {
     out$data <- x
@@ -28,7 +28,7 @@ matlm_pred <- function(x, ind = NULL, num_batches = 1, ...)
     oldClass(out) <- c("matlmPredMat", "matlmPred")
   } else if(class(x) == "big.matrix") {
     out$data <- describe(x)
-
+    
     oldClass(out) <- c("matlmPredBigMat", "matlmPred")
   } else if(class(x) == "big.matrix.descriptor") {
     out$data <- x
@@ -75,6 +75,9 @@ matlm_pred <- function(x, ind = NULL, num_batches = 1, ...)
 # Export methods
 #-----------------
 
+#' @export pred_batch
+pred_attach <- function(x, ...) UseMethod("pred_attach")
+
 #' @export pred_nrow
 pred_nrow <- function(x, ...) UseMethod("pred_nrow")
 
@@ -97,7 +100,6 @@ pred_data <- function(x, ind_row, ind_col, ...) UseMethod("pred_data")
 pred_batch <- function(x, ...) UseMethod("pred_batch")
 
 
-
 #--------------
 # print, show
 #--------------
@@ -111,13 +113,27 @@ print.matlmPred <- function(x, ...)
 }
 
 #--------------
+# pred_attach
+#--------------
+
+pred_attach.matlmPredBigMat <- function(x, ...) 
+{
+  stopifnot(class(x$data) == "big.matrix.descriptor")
+  bmat <- attach.big.matrix(x$data, path = x$path)
+  
+  stopifnot(!is.nil(bmat@address))
+  
+  return(bmat)
+}
+
+#--------------
 # pred_nrow
 #--------------
 
 #' @export 
 pred_nrow.matlmPred <- function(x, ...) nrow(x$data)
 
-pred_nrow.matlmPredBigMat <- function(x, ...) attach.big.matrix(x$data) %>% nrow
+pred_nrow.matlmPredBigMat <- function(x, ...) pred_attach(x) %>% nrow
 
 #--------------
 # pred_ncol
@@ -126,7 +142,7 @@ pred_nrow.matlmPredBigMat <- function(x, ...) attach.big.matrix(x$data) %>% nrow
 #' @export 
 pred_ncol.matlmPred <- function(x, ...) ncol(x$data)
 
-pred_ncol.matlmPredBigMat <- function(x, ...) attach.big.matrix(x$data) %>% ncol
+pred_ncol.matlmPredBigMat <- function(x, ...) pred_attach(x) %>% ncol
 
 #--------------
 # pred_colnames
@@ -135,7 +151,7 @@ pred_ncol.matlmPredBigMat <- function(x, ...) attach.big.matrix(x$data) %>% ncol
 #' @export 
 pred_colnames.matlmPred <- function(x, ...) colnames(x$data)
 
-pred_colnames.matlmPredBigMat <- function(x, ...) attach.big.matrix(x$data) %>% colnames
+pred_colnames.matlmPredBigMat <- function(x, ...) pred_attach(x) %>% colnames
 
 #--------------
 # pred_ind
@@ -151,7 +167,7 @@ pred_ind.matlmPred <- function(x, ...) x$ind
 #' @export 
 pred_slice.matlmPred <- function(x, ind_row, ind_col, ...) x$data[ind_row, ind_col, drop = FALSE]
 
-pred_slice.matlmPredBigMat <- function(x, ind_row, ind_col, ...) attach.big.matrix(x$data)[ind_row, ind_col, drop = FALSE]
+pred_slice.matlmPredBigMat <- function(x, ind_row, ind_col, ...) pred_attach(x)[ind_row, ind_col, drop = FALSE]
 
 #--------------------------
 # pred_data, pred_batch
