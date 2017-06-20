@@ -29,7 +29,9 @@ print.matlmResults <- function(x, ...)
   
   # formula
   cat("\n - formula: ", format(x$formula), "\n")
-  
+  if(x$weighted) {
+    cat("  --  weighted by var-cov matrix\n")
+  }  
   # results
   cat("\n - top results 5 / ", format(nrow(x$tab), big.mark = ",") , ":\n", sep = "")
   x$tab %>% arrange(pval) %>% head(5) %>% as.data.frame %>% print

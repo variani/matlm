@@ -170,7 +170,7 @@ matlm <- function(formula, data, ...,
   matlm_batch_marginal <- function(batch, ind)
   {
     if(verbose > 1) {
-      cat("  --  bathc", batch, "/", num_batches, "\n")
+      cat("  --  batch", batch, "/", num_batches, "\n")
     }
     
     X <- pred_batch(pred, batch, ind)
@@ -196,7 +196,7 @@ matlm <- function(formula, data, ...,
   matlm_batch_interaction <- function(batch, ind) 
   {
     if(verbose > 1) {
-      cat("  --  bathc", batch, "/", num_batches, "\n")
+      cat("  --  batch", batch, "/", num_batches, "\n")
     }
     
     X <- pred_batch(pred, batch, ind)
