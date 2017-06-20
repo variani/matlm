@@ -15,12 +15,12 @@
 #--------------
 
 #' @export
-matlm_pred <- function(x, ind = NULL, num_batches = 1, path_pred = ".", ...)
+matlm_pred <- function(x, ind = NULL, num_batches = 1, batch_size = NULL, path_pred = ".", ...)
 {
   ### args
   stopifnot(!any(duplicated(ind)))
   
-  out <- list(num_batches = num_batches, path = path_pred)
+  out <- list(path = path_pred)
   
   if(class(x) == "matrix") {
     out$data <- x
@@ -37,7 +37,6 @@ matlm_pred <- function(x, ind = NULL, num_batches = 1, path_pred = ".", ...)
   } else {
     stop("not supported class")
   }
-  stopifnot(out$num_batches <= pred_ncol(out))
 
   ### ind
   if(is.null(ind)) {
@@ -58,12 +57,23 @@ matlm_pred <- function(x, ind = NULL, num_batches = 1, path_pred = ".", ...)
 
     
   # process batches
-  beg <- seq(1, pred_ncol(out), length = out$num_batches) %>% 
-    floor
-  end <- c(beg[-1] - 1, pred_ncol(out))
+  if(num_batches > pred_ncol(out)) {
+    warning("num_batches > pred_ncol: force num_batches <- pred_ncol")
+    num_batches <- pred_ncol(out)
+  }
+    
+  if(is.null(batch_size)) {
+    beg <- seq(1, pred_ncol(out), length = num_batches) %>% floor
+    end <- c(beg[-1] - 1, pred_ncol(out))
+  } else {
+    beg <- seq(1, pred_ncol(out), by = batch_size) 
+    end <- c(beg[-1] - 1, pred_ncol(out))      
+  }
   stopifnot(all(beg <= pred_ncol(out)))
-  stopifnot(all(end <= pred_ncol(out)))
-
+  stopifnot(all(end <= pred_ncol(out)))  
+  
+  out$num_batches <- length(beg)
+  out$batch_size <- batch_size
   out$beg <- beg
   out$end <- end
   

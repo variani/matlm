@@ -3,7 +3,7 @@ matlm <- function(formula, data, ...,
   varcov = NULL, transform = NULL, 
   ids = NULL,
   pred, int,
-  num_batches = 1,
+  num_batches = 1, batch_size = NULL,
   path_pred = ".",
   num_perm = 0, seed_perm,
   cores = 1,
@@ -119,7 +119,10 @@ matlm <- function(formula, data, ...,
   if(verbose > 0) {
     cat(" - creating `matlmPred`...\n")
   }  
-  pred <- matlm_pred(pred, ind = ind_model, num_batches = num_batches, path_pred = path_pred)
+  pred <- matlm_pred(pred, ind = ind_model, 
+    num_batches = num_batches, batch_size = batch_size, 
+    path_pred = path_pred)
+  num_batches <- pred$num_batches
   
   stopifnot(pred_nrow(pred) == nobs_data)
   toc(log = TRUE, quiet = TRUE)
@@ -131,15 +134,21 @@ matlm <- function(formula, data, ...,
   }  
   y <- model.extract(model.frame(formula, data), "response")
   C <- model.matrix(formula, data)
-  if(model == "interaction") {
-    d <- data[ind_model, int]
-    if(class(d) == "factor") {
-      d <- as.numeric(d) - 1
-    }
-  }
-  
+
   stopifnot(nrow(C) == nobs_model)
   stopifnot(length(y) == nobs_model)
+    
+  if(model == "interaction") {
+    d_fct <- data[ind_model, int]
+    
+    stopifnot(class(d_fct) == "factor")
+    stopifnot(nlevels(d_fct) == 2)
+    
+    d <- as.numeric(d_fct) - 1
+    
+    d_cname <- paste0(int, levels(d_fct)[2])
+    stopifnot(d_cname %in% colnames(C))
+  }
   
   N <- nobs_model
   toc(log = TRUE, quiet = TRUE)
@@ -293,9 +302,11 @@ matlm <- function(formula, data, ...,
   ### return
   tic("return")
 
-  out <- list(model = model, weighted = weighted, permutation = permutation, tab = tab, ptab = ptab,
+  out <- list(formula = formula,model = model, weighted = weighted, 
     nobs_data = nobs_data, nobs_model = nobs_model, nobs_omit = nobs_omit,
     npred = pred_ncol(pred),
+    permutation = permutation, tab = tab, ptab = ptab,
+    num_batches = num_batches, 
     cores = cores)
 
   oldClass(out) <- c("matlmResults", "matlmList", oldClass(out))

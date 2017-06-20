@@ -18,7 +18,7 @@ test_that("many batches (matrix)", {
   expect_equal(assoc1$tab$pval, assocM$tab$pval, tol = 1e-10)  
 
   # `num_batches > M`  
-  expect_error(matlm(simdat$form, simdat$dat, pred = simdat$pred, num_batches = M + 1))   
+  expect_warning(matlm(simdat$form, simdat$dat, pred = simdat$pred, num_batches = M + 1))   
 })
 
 test_that("many batches (big matrix)", {
@@ -42,5 +42,5 @@ test_that("many batches (big matrix)", {
   expect_equal(assoc1$tab$pval, assocM$tab$pval, tol = 1e-10)  
 
   # `num_batches > M`  
-  expect_error(matlm(simdat$form, simdat$dat, pred = bpred, num_batches = M + 1))  
+  expect_warning(matlm(simdat$form, simdat$dat, pred = bpred, num_batches = M + 1))  
 })

@@ -27,6 +27,10 @@ print.matlmResults <- function(x, ...)
     cat("  --  ", x$nobs_omit, " samples omitted\n")
   }
   
+  # formula
+  cat("\n - formula: ", format(x$formula), "\n")
+  
+  # results
   cat("\n - top results 5 / ", format(nrow(x$tab), big.mark = ",") , ":\n", sep = "")
   x$tab %>% arrange(pval) %>% head(5) %>% as.data.frame %>% print
   

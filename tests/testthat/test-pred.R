@@ -85,6 +85,22 @@ test_that("matlmPredMat: external bigmemory files", {
   #assoc2 <- matlm(simdat$form, simdat$dat, pred = bmat, num_batches = 2, cores = 2)
 })
 
+test_that("matlmPredMat: matrix", {
+  stopifnot(require(bigmemory))
+  
+  nrow <- 2
+  ncol <- 10
+  batch_size <- 3
+  
+  mat <- matrix(2, nrow = nrow, ncol = ncol)
+  pred1 <- matlm_pred(mat, num_batches = 3)
+  pred2 <- matlm_pred(mat, batch_size = 3)
+  
+  expect_true(pred1$num_batches == 3)
+  expect_true(pred2$num_batches == 4)
+})
+
+
 test_that("matlmPredBigMat: matlm", {
   stopifnot(require(bigmemory))
   
