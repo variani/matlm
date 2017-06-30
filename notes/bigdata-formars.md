@@ -1,6 +1,10 @@
 ## HDF5
 
 - https://stackoverflow.com/questions/15974643/how-to-deal-with-hdf5-files-in-r
+- R packages
+    - https://bioconductor.org/packages/release/bioc/html/rhdf5.html
+    - https://bioconductor.org/packages/release/bioc/html/h5vc.html
+
 
 ## big.matrix (R)
 
