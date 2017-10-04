@@ -6,6 +6,7 @@ matlm <- function(formula, data, ...,
   num_batches = 1, batch_size = NULL,
   path_pred = ".",
   num_perm = 0, seed_perm,
+  returnPredOrth = FALSE, returnPredOrthSc = FALSE,
   cores = 1,
   verbose = 0)
 {
@@ -70,7 +71,7 @@ matlm <- function(formula, data, ...,
       nobs_varcov <- nrow(varcov)
       if(nobs_varcov == nobs_data) {
         if(nobs_omit) {
-          varcov <- varcov[ind, ind]
+          varcov <- varcov[ind_model, ind_model]
         }
       } else {
         stopifnot(!missing_ids)
@@ -79,6 +80,12 @@ matlm <- function(formula, data, ...,
         
         stopifnot(!is.null(rownames(varcov)))
         ids_varcov <- rownames(varcov)
+        
+        #idf <- full_join(
+        #  data_frame(id = ids_model, id_model = ids_model), 
+        #  data_frame(id = ids_varcov, id_varcov = ids_varcov), by = "id")
+        #print(idf %>% filter(is.na(id_model) | is.na(id_varcov)))
+        #print(table(ids_model %in% ids_varcov))
         
         stopifnot(all(ids_model %in% ids_varcov))
         ind <- which(ids_varcov %in% ids_model)
@@ -96,16 +103,23 @@ matlm <- function(formula, data, ...,
       
       if(nobs_transform == nobs_data) {
         if(nobs_omit) {
-          transform <- transform[ind, ind]            
+          transform <- transform[ind_model, ind_model]            
         }
       } else {
         stopifnot(!missing_ids)
-        
-        ids_model <- ids[ind_model]
-        
+   
         stopifnot(!is.null(rownames(transform)))
-        ids_transform <- rownames(transform)
+        ids_transform <- rownames(transform)      
+           
+        ids_model <- ids[ind_model]
+
+        idf <- full_join(
+          data_frame(id = ids_model, id_model = ids_model), 
+          data_frame(id = ids_transform, id_transform = ids_transform), by = "id")
+        print(idf %>% filter(is.na(id_model) | is.na(id_transform)))
+        print(table(ids_model %in% ids_transform))
         
+                
         stopifnot(all(ids_model %in% ids_transform))
         ind <- which(ids_transform %in% ids_model)
         transform <- transform[ind, ind]
@@ -180,8 +194,14 @@ matlm <- function(formula, data, ...,
       X <- crossprod(transform, X)
     }
     X_orth <- matlm_orth(C, X)
+    if(returnPredOrth) {
+      return(list(X_orth))
+    }
     X_sc <- matlm_scale(X_orth)
-    
+    if(returnPredOrthSc) {
+      return(list(X_sc))
+    }   
+     
     r <- as.numeric(crossprod(X_sc, y_sc) / (N - 1))
     s <- r * sqrt((N - 2) / (1 - r*r))
     s2 <- s^2
@@ -211,8 +231,14 @@ matlm <- function(formula, data, ...,
     
     # compute `X_sc`
     X_orth <- matlm_orth(C, X, Xi)
+    if(returnPredOrth) {
+      return(list(X_orth))
+    }
     X_sc <- matlm_scale(X_orth)
-
+    if(returnPredOrth) {
+      return(list(X_sc))
+    }
+    
     # compute `Y_sc`
     Y <- tcrossprod(y, rep(1, M))
     Y_orth <- matlm_orth(C, X, Y)
@@ -251,6 +277,10 @@ matlm <- function(formula, data, ...,
       "interaction" = sapply(seq(1, num_batches), function(b)
         matlm_batch_interaction(b, ind_model)),
     stop("switch by model (tab)"))
+  }
+  if(returnPredOrth | returnPredOrthSc) {
+    mat <- do.call(cbind, out)
+    return(mat)
   }
   tab <- bind_rows(out)
 
