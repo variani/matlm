@@ -11,17 +11,29 @@ matlm_center <- function(X)
 }
 
 #' @export
-matlm_scale <- function(X)
+matlm_sd <- function(X)
+{
+  if(is.vector(X)) {
+    sd(X)
+  } else {
+    apply(X, 2, sd)
+  }
+}
+
+#' @export
+matlm_scale <- function(X, sd_X)
 {
   # @ https://privefl.github.io/blog/(Linear-Algebra)-Do-not-scale-your-matrix/
-  
+
+  if(missing(sd_X)) {
+    sd_X <- matlm_sd(X)
+  }
+
   if(is.vector(X)) {
-    (X - mean(X)) / sd(X)
+    (X - mean(X)) / sd_X
   } else {
     N <- nrow(X)
     M <- ncol(X)
-
-    sd_X <- apply(X, 2, sd)
 
     (diag(N) - tcrossprod(rep(1, N)) / N) %*% X %*% diag(1 / sd_X, M, M)
   }

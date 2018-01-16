@@ -1,4 +1,30 @@
 #' @export
+matlm_orth_list <- function(C, Xlist, X)
+{
+  # @ https://cran.r-project.org/web/packages/matlib/vignettes/gramreg.html
+
+  if(is.vector(C)) {
+    C <- matrix(C, ncol = 1)
+  }
+  
+  # orth.
+  Q <- qr.Q(qr(C)) 
+  
+  X_orth <- X - matlm_proj(Q, X, normalized = TRUE)
+  Xlist_orth <- lapply(Xlist, function(Xi) {
+    Xi - matlm_proj(Q, Xi, normalized = TRUE)
+  })
+  # `normalized = TRUE`, as Q is orthonormal matrix
+  # note that `X_orth` is not normalized
+  
+  for(i in seq(1, length(Xlist))) {
+    X_orth <- X_orth - matlm_proj_mut(Xlist_orth[[i]], X_orth)
+  }
+
+  return(X_orth)
+}
+
+#' @export
 matlm_orth <- function(C, X, Xi)
 {
   # @ https://cran.r-project.org/web/packages/matlib/vignettes/gramreg.html

@@ -32,14 +32,10 @@ matreg <- function(Y, C0, C, X, Xlist,
     C <- cbind(C0, C)
   }
 
-  # process `X` and `Xlist`
+  # process `X`
   stopifnot(NROW(X) == N)
   if(is.vector(X)) {
     X <- matrix(X, nrow = N, ncol = 1)
-  }
-  
-  if(missing_Xlist) {
-    Xlist <- list(X)
   }
   
   ### rotate data if necessary
@@ -69,30 +65,53 @@ matreg <- function(Y, C0, C, X, Xlist,
     Y <- crossprod(transform, Y)
     C <- crossprod(transform, C)
     
-    Xlist <- lapply(Xlist, function(Xi) crossprod(transform, Xi))
+    if(!missing_Xlist) {
+      Xlist <- lapply(Xlist, function(Xi) crossprod(transform, Xi))
+    }
   }
   
   #### compute regression
-  if(length(Xlist) == 1) {
-    X <- Xlist[[1]]
-    
+  if(missing_Xlist) {
     Y_orth <- matlm_orth(C, Y)
-    Y_sc <- matlm_scale(Y_orth) 
+    sd_Y_orth <- matlm_sd(Y_orth)
+    Y_sc <- matlm_scale(Y_orth, sd_Y_orth) 
   
     X_orth <- matlm_orth(C, X)
-    X_sc <- matlm_scale(X_orth)
-
-    r <- apply(X_sc * Y_sc, 2, sum) / (N - 1)
-    s <- r * sqrt((N - 2) / (1 - r*r))
-    s2 <- s^2
-
-    pvals <- pchisq(s2, df = 1, lower = FALSE)
-    
-    tab <- data_frame(predictor = seq(1, M), beta = r, zscore = s, pval = pvals) 
-  } else {
-    stop("length(Xlist)")
-  }
+    sd_X_orth <- matlm_sd(X_orth)
+    X_sc <- matlm_scale(X_orth, sd_X_orth) 
+  } else if(length(Xlist) == 2) {
+    Y_orth <- matlm_orth(C, Xlist[[1]], Y)
+    sd_Y_orth <- matlm_sd(Y_orth)
+    Y_sc <- matlm_scale(Y_orth, sd_Y_orth) 
   
+    X_orth <- matlm_orth(C, Xlist[[1]], X)
+    sd_X_orth <- matlm_sd(X_orth)
+    X_sc <- matlm_scale(X_orth, sd_X_orth) 
+  } else {
+    Y_orth <- matlm_orth_list(C, Xlist, Y)
+    sd_Y_orth <- matlm_sd(Y_orth)
+    Y_sc <- matlm_scale(Y_orth, sd_Y_orth) 
+  
+    X_orth <- matlm_orth_list(C, Xlist, X)
+    sd_X_orth <- matlm_sd(X_orth)
+    X_sc <- matlm_scale(X_orth, sd_X_orth) 
+  }
+
+  r <- colSums(X_sc * Y_sc) / (N - 1)
+  sigma_sc <- sqrt((1 - r*r) / (N - 2))  
+  
+  s <- r / sigma_sc
+  s2 <- s^2
+
+  pvals <- pchisq(s2, df = 1, lower = FALSE)
+  beta <- r * sd_Y_orth / sd_X_orth
+  se <- beta / s
+  sigma <- sigma_sc * (sd_Y_orth * sqrt(N - 1)) # the correction factor is e'e = sd * (N - 1)
+  
+  tab <- data_frame(predictor = seq(1, M), 
+    beta = beta, se = se, sigma2 = sigma^2,
+    zscore = s, pval = pvals) 
+
   ### return
   out <- list(tab = tab)
 
