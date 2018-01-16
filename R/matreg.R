@@ -60,11 +60,12 @@ matreg <- function(Y, C0, C, X, Xlist,
       nobs_transform <- nrow(transform)
       stopifnot(nobs_transform == N)
     }
-
+    
     # transform
     Y <- crossprod(transform, Y)
     C <- crossprod(transform, C)
-    
+    X <- crossprod(transform, X)
+        
     if(!missing_Xlist) {
       Xlist <- lapply(Xlist, function(Xi) crossprod(transform, Xi))
     }
