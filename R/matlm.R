@@ -6,7 +6,7 @@ matlm <- function(formula, data, ...,
   num_batches = 1, batch_size = NULL,
   path_pred = ".",
   num_perm = 0, seed_perm,
-  returnPredOrth = FALSE, returnPredOrthSc = FALSE,
+  returnRespOrth = FALSE, returnPredOrth = FALSE, returnPredOrthSc = FALSE,
   cores = 1,
   verbose = 0)
 {
@@ -178,6 +178,9 @@ matlm <- function(formula, data, ...,
   ### test multiple predictors one by one
   tic("tests")
   y_orth <- matlm_orth(C, y)
+  if(returnRespOrth) {
+    return(as.numeric(y_orth))
+  }
   y_sc <- matlm_scale(y_orth)
   
   ### local functions, further used by sapply/parSapply
