@@ -4,7 +4,8 @@
 \alias{matlm_pred}
 \title{S3 class matlmPred.}
 \usage{
-matlm_pred(x, ind = NULL, num_batches = 1, ...)
+matlm_pred(x, ind = NULL, num_batches = 1, batch_size = NULL,
+  path_pred = ".", ...)
 }
 \description{
 S3 class matlmPred.

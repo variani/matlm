@@ -114,11 +114,11 @@ matlm <- function(formula, data, ...,
            
         ids_model <- ids[ind_model]
 
-        idf <- full_join(
-          data_frame(id = ids_model, id_model = ids_model), 
-          data_frame(id = ids_transform, id_transform = ids_transform), by = "id")
-        print(idf %>% filter(is.na(id_model) | is.na(id_transform)))
-        print(table(ids_model %in% ids_transform))
+        #idf <- full_join(
+        #  data_frame(id = ids_model, id_model = ids_model), 
+        #  data_frame(id = ids_transform, id_transform = ids_transform), by = "id")
+        #print(idf %>% filter(is.na(id_model) | is.na(id_transform)))
+        #print(table(ids_model %in% ids_transform))
         
                 
         stopifnot(all(ids_model %in% ids_transform))
