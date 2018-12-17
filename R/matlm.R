@@ -7,6 +7,7 @@ matlm <- function(formula, data, ...,
   path_pred = ".",
   num_perm = 0, seed_perm,
   returnRespOrth = FALSE, returnPredOrth = FALSE, returnPredOrthSc = FALSE,
+  stats_full = FALSE,
   cores = 1,
   verbose = 0)
 {
@@ -200,20 +201,33 @@ matlm <- function(formula, data, ...,
     if(returnPredOrth) {
       return(list(X_orth))
     }
-    X_sc <- matlm_scale(X_orth)
+    sd_X <- matlm_sd(X_orth)
+    X_sc <- matlm_scale(X_orth, sd_X = sd_X)
     if(returnPredOrthSc) {
       return(list(X_sc))
     }   
-     
-    r <- as.numeric(crossprod(X_sc, y_sc) / (N - 1))
-    s <- r * sqrt((N - 2) / (1 - r*r))
-    s2 <- s^2
     
-    pvals <- pchisq(s2, df = 1, lower = FALSE)
+    k <- ncol(C) + 1
+    r <- as.numeric(crossprod(X_sc, y_sc) / (N - 1))
+    r2 <- r * r
+    s <- sqrt((1 - r2) / (N - k))
+    z <- r / s
+    z2 <- z * z
+    
+    pvals <- pchisq(z2, df = 1, lower = FALSE)
+    
+    if(stats_full) {
+      se <- s / sd_X
+      b <- z * se 
+    }
     
     gc()
     
-    list(data_frame(predictor = colnames(X), zscore = s, pval = pvals))  
+    if(!stats_full) {
+      list(data_frame(predictor = colnames(X), zscore = z, pval = pvals))  
+    } else {
+      list(data_frame(predictor = colnames(X), b = b, se = se, zscore = z, pval = pvals))  
+    }    
   }
   
   matlm_batch_interaction <- function(batch, ind) 
@@ -237,7 +251,8 @@ matlm <- function(formula, data, ...,
     if(returnPredOrth) {
       return(list(X_orth))
     }
-    X_sc <- matlm_scale(X_orth)
+    sd_X <- matlm_sd(X_orth)
+    X_sc <- matlm_scale(X_orth, sd_X = sd_X)
     if(returnPredOrth) {
       return(list(X_sc))
     }
