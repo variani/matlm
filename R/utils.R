@@ -31,6 +31,8 @@ matlm_scale <- function(X, sd_X)
 
   if(is.vector(X)) {
     (X - mean(X)) / sd_X
+  } else if(ncol(X) == 1) {
+    (X - colMeans(X)) / sd_X
   } else {
     N <- nrow(X)
     M <- ncol(X)
