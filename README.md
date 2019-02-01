@@ -28,3 +28,7 @@ while calling `lm` for every predictor results in a considerable overhead in com
 - Support different formats to store predictors: `matrix`, `big.matrix`, etc
     - Use S3 classes for the interface
 - Run GLS models (not only OLS)
+
+## Similar tools/methods
+
+- [GWAS on your notebook: fast semi-parallel linear and logistic regression for genome-wide association studies](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-14-166)
