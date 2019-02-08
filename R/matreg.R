@@ -1,4 +1,57 @@
 #' @export
+matreg0 <- function(Y, X, 
+  k = 0, 
+  predictors = colnames(X),
+  verbose = 0)
+{
+  ### args
+  stopifnot(!missing(Y))
+  stopifnot(!missing(X))
+  
+  ### vars
+  N <- NROW(Y)
+  M <- NCOL(X)
+  
+  # process `X`
+  stopifnot(NROW(X) == N)
+  if(is.vector(X)) {
+    X <- matrix(X, nrow = N, ncol = 1)
+  }
+
+  stopifnot(NROW(Y) == N)
+  
+  ### center (= orth.) / scale
+  Y <- scale(Y, center = TRUE, scale = TRUE)
+  X <- scale(X, center = TRUE, scale = TRUE)
+  
+  ### impute missing
+  Y[is.na(Y)] <- 0
+  X[is.na(X)] <- 0
+    
+  #### compute regression (X & Y are scaled)
+  r <- as.numeric(crossprod(X, Y)) / (N - 1)
+  sigma_sc <- sqrt((1 - r*r) / (N - 2 - k))  
+  
+  z <- r / sigma_sc
+  z2 <- z^2
+
+  pvals <- pchisq(z2, df = 1, lower = FALSE)
+  beta <- r * attr(Y, "scaled:scale") / attr(X, "scaled:scale")
+  se <- beta / z
+  
+  ### return
+  if(is.null(predictors)) {
+    predictors <- seq(ncol(X))
+  } 
+  
+  tab <- data_frame(predictor = predictors, 
+    beta = beta, se = se, 
+    zscore = z, pval = pvals) 
+
+  return(tab)
+}
+
+#' @export
 matreg <- function(Y, C0, C, X, Xlist,
   varcov = NULL, transform = NULL, 
   verbose = 0)
