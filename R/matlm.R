@@ -214,7 +214,9 @@ matlm <- function(formula, data, ...,
     z <- r / s
     z2 <- z * z
     
-    pvals <- pchisq(z2, df = 1, lower = FALSE)
+    # pvals <- pchisq(z2, df = 1, lower = FALSE)
+    r2 = z2 /(N - k + z2)
+    pvals = pbeta(r2, 0.5, 0.5*(N - k - 2), lower = FALSE)
     
     if(stats_full) {
       se <- s / sd_X

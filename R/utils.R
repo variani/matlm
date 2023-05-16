@@ -34,9 +34,10 @@ matlm_scale <- function(X, sd_X)
   } else if(ncol(X) == 1) {
     (X - colMeans(X)) / sd_X
   } else {
-    N <- nrow(X)
-    M <- ncol(X)
+    scale(X, center = colMeans(X), scale = sd_X)
+    # N <- nrow(X)
+    # M <- ncol(X)
 
-    (diag(N) - tcrossprod(rep(1, N)) / N) %*% X %*% diag(1 / sd_X, M, M)
+    # (diag(N) - tcrossprod(rep(1, N)) / N) %*% X %*% diag(1 / sd_X, M, M)
   }
 }

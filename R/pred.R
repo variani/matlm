@@ -22,7 +22,7 @@ matlm_pred <- function(x, ind = NULL, num_batches = 1, batch_size = NULL, path_p
   
   out <- list(path = path_pred)
   
-  if(class(x) == "matrix") {
+  if(class(x)[1] == "matrix") {
     out$data <- x
 
     oldClass(out) <- c("matlmPredMat", "matlmPred")
